@@ -1,7 +1,7 @@
 {
-    "name": "hubertinio/sylius-example-plugin",
+    "name": "hubertinio/sylius-cashbill-plugin",
     "type": "sylius-plugin",
-    "description": "Hubertinio example plugin for Sylius.",
+    "description": "CashBill payment plugin for Sylius.",
     "keywords": [
         "sylius",
         "sylius-plugin"
@@ -64,8 +64,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Hubertinio\\SyliusExamplePlugin\\": "src/",
-            "Tests\\Hubertinio\\SyliusExamplePlugin\\": "tests/"
+            "Hubertinio\\SyliusCashBillPlugin\\": "src/",
+            "Tests\\Hubertinio\\SyliusCashBillPlugin\\": "tests/"
         }
     },
     "autoload-dev": {

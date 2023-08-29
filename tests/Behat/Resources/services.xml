@@ -5,12 +5,12 @@
         <defaults public="true" />
         <!-- Put your Behat services here -->
 
-        <service id="hubertinio_sylius_example.context.ui.shop.welcome" class="Tests\Hubertinio\SyliusExamplePlugin\Behat\Context\Ui\Shop\WelcomeContext">
-            <argument type="service" id="hubertinio_sylius_example.page.shop.static_welcome" />
-            <argument type="service" id="hubertinio_sylius_example.page.shop.dynamic_welcome" />
+        <service id="hubertinio_sylius_cashbill.context.ui.shop.welcome" class="Tests\Hubertinio\SyliusCashBillPlugin\Behat\Context\Ui\Shop\WelcomeContext">
+            <argument type="service" id="hubertinio_sylius_cashbill.page.shop.static_welcome" />
+            <argument type="service" id="hubertinio_sylius_cashbill.page.shop.dynamic_welcome" />
         </service>
 
-        <service id="hubertinio_sylius_example.page.shop.static_welcome" class="Tests\Hubertinio\SyliusExamplePlugin\Behat\Page\Shop\StaticWelcomePage" parent="sylius.behat.symfony_page" public="false" />
-        <service id="hubertinio_sylius_example.page.shop.dynamic_welcome" class="Tests\Hubertinio\SyliusExamplePlugin\Behat\Page\Shop\DynamicWelcomePage" parent="sylius.behat.symfony_page" public="false" />
+        <service id="hubertinio_sylius_cashbill.page.shop.static_welcome" class="Tests\Hubertinio\SyliusCashBillPlugin\Behat\Page\Shop\StaticWelcomePage" parent="sylius.behat.symfony_page" public="false" />
+        <service id="hubertinio_sylius_cashbill.page.shop.dynamic_welcome" class="Tests\Hubertinio\SyliusCashBillPlugin\Behat\Page\Shop\DynamicWelcomePage" parent="sylius.behat.symfony_page" public="false" />
     </services>
 </container>

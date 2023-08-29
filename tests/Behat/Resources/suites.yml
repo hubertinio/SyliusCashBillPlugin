@@ -4,7 +4,7 @@ default:
     suites:
         greeting_customer:
             contexts:
-                - hubertinio_sylius_example.context.ui.shop.welcome
+                - hubertinio_sylius_cashbill.context.ui.shop.welcome
 
             filters:
                 tags: "@greeting_customer"

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Tests\Hubertinio\SyliusExamplePlugin\Application\Kernel;
+use Tests\Hubertinio\SyliusCashBillPlugin\Application\Kernel;
 use Symfony\Component\ErrorHandler\Debug;
 use Symfony\Component\HttpFoundation\Request;
 

@@ -1,9 +1,9 @@
-hubertinio_sylius_example_shop:
-    resource: "@HubertinioSyliusExamplePlugin/config/shop_routing.yml"
+hubertinio_sylius_cashbill_shop:
+    resource: "@HubertinioSyliusApaczkaPlugin/config/shop_routing.yml"
     prefix: /{_locale}
     requirements:
         _locale: ^[a-z]{2}(?:_[A-Z]{2})?$
 
-hubertinio_sylius_example_admin:
-    resource: "@HubertinioSyliusExamplePlugin/config/admin_routing.yml"
+hubertinio_sylius_cashbill_admin:
+    resource: "@HubertinioSyliusApaczkaPlugin/config/admin_routing.yml"
     prefix: /admin

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Hubertinio\SyliusExamplePlugin\Behat\Page\Shop;
+namespace Tests\Hubertinio\SyliusCashBillPlugin\Behat\Page\Shop;
 
 use FriendsOfBehat\PageObjectExtension\Page\SymfonyPage;
 
@@ -29,7 +29,7 @@ class DynamicWelcomePage extends SymfonyPage implements WelcomePageInterface
      */
     public function getRouteName(): string
     {
-        return 'hubertinio_sylius_example_dynamic_welcome';
+        return 'hubertinio_sylius_cashbill_dynamic_welcome';
     }
 
     /**

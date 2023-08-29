@@ -46,7 +46,7 @@ default:
         FriendsOfBehat\SymfonyExtension:
             bootstrap: tests/Application/config/bootstrap.php
             kernel:
-                class: Tests\Hubertinio\SyliusExamplePlugin\Application\Kernel
+                class: Tests\Hubertinio\SyliusCashBillPlugin\Application\Kernel
 
         FriendsOfBehat\VariadicExtension: ~
 

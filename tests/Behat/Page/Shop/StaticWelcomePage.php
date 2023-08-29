@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Tests\Hubertinio\SyliusExamplePlugin\Behat\Page\Shop;
+namespace Tests\Hubertinio\SyliusCashBillPlugin\Behat\Page\Shop;
 
 use FriendsOfBehat\PageObjectExtension\Page\SymfonyPage;
 
@@ -21,7 +21,7 @@ class StaticWelcomePage extends SymfonyPage implements WelcomePageInterface
      */
     public function getRouteName(): string
     {
-        return 'hubertinio_sylius_example_static_welcome';
+        return 'hubertinio_sylius_cashbill_static_welcome';
     }
 
     /**
