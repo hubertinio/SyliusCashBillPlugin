@@ -31,10 +31,4 @@ class CachedCashBillApiClient implements CashBillApiClientInterface
         self::$client = $client;
         self::$cache = $cache;
     }
-
-    public function getAvailableMethods(): array
-    {
-
-
-    }
 }

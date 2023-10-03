@@ -26,8 +26,9 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autoconfigure();
 
     $services->set($servicesIdPrefix . 'config', Config::class)
-        ->arg('$appId', '1352150_2c039ebd279355ec_63VFbdW')
-        ->arg('$appSecret', '5kbtajsttpzukslktbogasggjbqwi1c1');
+        ->arg('$appId', 'rocketdesign.usermd.net')
+        ->arg('$appSecret', '5f87f568373746f7bed1833a3a631a16')
+        ->arg('$apiUrl', 'https://pay.cashbill.pl/testws/rest/');
 
     $services->set($servicesIdPrefix . 'api.client', CashBillApiClient::class)
         ->args([

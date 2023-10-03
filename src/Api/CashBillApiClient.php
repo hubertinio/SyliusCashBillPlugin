@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace Hubertinio\SyliusCashBillPlugin\Api;
 
 use Hubertinio\SyliusCashBillPlugin\Model\ConfigInterface;
+use Symfony\Component\Serializer\Serializer;
+use Symfony\Component\Serializer\SerializerInterface;
 use Webmozart\Assert\Assert;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\Channel;
 
 /**
  * @see https://www.apaczka.pl/integracje/
@@ -15,17 +18,22 @@ class CashBillApiClient implements CashBillApiClientInterface
     private const SIGN_ALGORITHM = 'sha1';
     private const EXPIRES = '+30min';
 
-    private static ConfigInterface $config;
+    private ConfigInterface $config;
 
-    public function __construct(ConfigInterface $config)
-    {
+    private SerializerInterface $serializer;
+
+    public function __construct(
+        ConfigInterface $config,
+        SerializerInterface $serializer,
+    ) {
         $this->config = $config;
+        $this->serializer = $serializer;
     }
 
-    public static function request($route, $data = null)
+    public function request($route, $data = null): string
     {
         $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, self::$config->getApiUrl() . $route);
+        curl_setopt($ch, CURLOPT_URL, $this->config->getApiUrl() . $route);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 //        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 //        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
@@ -45,18 +53,18 @@ class CashBillApiClient implements CashBillApiClientInterface
         return $result;
     }
 
-    public static function buildRequest($route, $data = [] )
+    public function buildRequest($route, $data = [] )
     {
         $data = json_encode($data);
         $expires = strtotime( self::EXPIRES );
 
         return [
-//            'app_id' => self::$config->getAppId(),
+//            'app_id' => $this->config->getAppId(),
             'request' => $data,
 //            'expires' => $expires,
 //            'signature' => self::getSignature(
-//                self::stringToSign( self::$config->getAppId(), $route, $data, $expires ),
-//                static::$appSecret
+//                self::stringToSign( $this->config->getAppId(), $route, $data, $expires ),
+//               ::$appSecret
 //            )
         ];
     }
@@ -64,12 +72,12 @@ class CashBillApiClient implements CashBillApiClientInterface
     /**
      * Fetch order details
      */
-//    public static function order($id)
+//    public function order($id)
 //    {
 //        return self::request( __FUNCTION__ . '/' . $id . '/' );
 //    }
 //
-//    public static function orders($page = 1, $limit = 10)
+//    public function orders($page = 1, $limit = 10)
 //    {
 //        return self::request( __FUNCTION__ . '/', [
 //            'page' => $page,
@@ -78,18 +86,32 @@ class CashBillApiClient implements CashBillApiClientInterface
 //    }
 
 
-    public static function service_structure()
+    public function paymentChannels(): iterable
     {
-        return self::request( __FUNCTION__ . '/');
+        $json = self::request('paymentchannels/' . $this->config->getAppId());
+        $data = json_decode($json);
+        $channels = [];
+
+        foreach ($data as $item) {
+            $channels[] = Channel::createFromStdClass($item);
+
+            if ($this->config->isSandbox()) {
+                $item->id = 2;
+                $item->name = 'Test 2';
+                $channels[] = Channel::createFromStdClass($item);
+            }
+        }
+
+        return $channels;
     }
 
 
-    public static function getSignature( string $string, string $key )
+    public function getSignature( string $string, string $key )
     {
         return hash_hmac( self::SIGN_ALGORITHM, $string, $key );
     }
 
-    public static function stringToSign( string $appId, string $route, string $data,  int $expires )
+    public function stringToSign( string $appId, string $route, string $data,  int $expires )
     {
         return sprintf( "%s:%s:%s:%s", $appId, $route, $data, $expires );
     }

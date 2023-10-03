@@ -6,47 +6,52 @@ namespace Hubertinio\SyliusCashBillPlugin\Model;
 
 final class Config implements ConfigInterface
 {
-    private static string $apiUrl = 'https://pay.cashbill.pl/ws/rest';
-    private static string $appId;
-    private static string $appSecret;
+    private string $apiUrl = 'https://pay.cashbill.pl/ws/rest';
+    private string $appId;
+    private string $appSecret;
 
     public function __construct(string $appId, string $appSecret, ?string $apiUrl = null)
     {
-        self::$appId = $appId;
-        self::$appSecret = $appSecret;
+        $this->appId = $appId;
+        $this->appSecret = $appSecret;
 
         if (null !== $apiUrl) {
-            self::$apiUrl = $apiUrl;
+            $this->apiUrl = $apiUrl;
         }
     }
 
-    public static function setAppId(string $appId): void
+    public function isSandbox(): bool
     {
-        self::$appId = $appId;
+        return str_contains($this->apiUrl, 'test');
     }
 
-    public static function setAppSecret(string $appSecret): void
+    public function setAppId(string $appId): void
     {
-        self::$appSecret = $appSecret;
+        $this->appId = $appId;
     }
 
-    public static function setApiUrl(string $url): void
+    public function setAppSecret(string $appSecret): void
     {
-        self::$apiUrl = $url;
+        $this->appSecret = $appSecret;
     }
 
-    public static function getApiUrl(): string
+    public function setApiUrl(string $url): void
     {
-        return self::$apiUrl;
+        $this->apiUrl = $url;
     }
 
-    public static function getAppId(): string
+    public function getApiUrl(): string
     {
-        return self::$appId;
+        return $this->apiUrl;
     }
 
-    public static function getAppSecret(): string
+    public function getAppId(): string
     {
-        return self::$appSecret;
+        return $this->appId;
+    }
+
+    public function getAppSecret(): string
+    {
+        return $this->appSecret;
     }
 }

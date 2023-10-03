@@ -4,15 +4,17 @@ namespace Hubertinio\SyliusCashBillPlugin\Model;
 
 interface ConfigInterface
 {
-    public static function setAppId(string $appId): void;
+    public function isSandbox(): bool;
 
-    public static function setAppSecret(string $appSecret): void;
+    public function setAppId(string $appId): void;
 
-    public static function setApiUrl(string $url): void;
+    public function setAppSecret(string $appSecret): void;
 
-    public static function getApiUrl(): string;
+    public function setApiUrl(string $url): void;
 
-    public static function getAppId(): string;
+    public function getApiUrl(): string;
 
-    public static function getAppSecret(): string;
+    public function getAppId(): string;
+
+    public function getAppSecret(): string;
 }
