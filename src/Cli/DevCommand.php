@@ -41,7 +41,7 @@ final class DevCommand extends Command
 
     public function getPayments(InputInterface $input, OutputInterface $output): void
     {
-        $channels = $this->apiClient->paymentChannels($order);
+        $channels = $this->apiClient->paymentChannels();
         $table = new Table($output);
         $table->setHeaders(['id', 'name', 'description', 'logo', 'currencies']);
 

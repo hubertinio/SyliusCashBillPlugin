@@ -16,15 +16,15 @@ final class Channel
 
     public array $availableCurrencies;
 
-    public static function createFromStdClass(\stdClass $std): self
+    public static function createFromArray(array $item): self
     {
         $channel = new self;
 
-        $channel->id = (int) $std->id;
-        $channel->name = $std->name;
-        $channel->description = $std->description;
-        $channel->logoUrl = $std->logoUrl;
-        $channel->availableCurrencies = $std->availableCurrencies;
+        $channel->id = (int) $item['id'];
+        $channel->name = $item['name'];
+        $channel->description = $item['description'];
+        $channel->logoUrl = $item['logoUrl'];
+        $channel->availableCurrencies = (array) $item['availableCurrencies'];
 
         return $channel;
     }

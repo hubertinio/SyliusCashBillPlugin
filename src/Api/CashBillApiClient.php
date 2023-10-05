@@ -4,34 +4,42 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Api;
 
+use http\Client;
+use Http\Message\MessageFactory;
 use Hubertinio\SyliusCashBillPlugin\Model\ConfigInterface;
+use Psr\Log\LoggerInterface;
+use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Serializer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Webmozart\Assert\Assert;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Channel;
+use GuzzleHttp\ClientInterface;
+use Psr\Http\Message\RequestInterface;
 
 /**
  * @see https://www.apaczka.pl/integracje/
+ *
+ * @TODO Symfony Http Client Interface (CurlWrapper)
  */
 class CashBillApiClient implements CashBillApiClientInterface
 {
     private const SIGN_ALGORITHM = 'sha1';
     private const EXPIRES = '+30min';
 
-    private ConfigInterface $config;
-
-    private SerializerInterface $serializer;
-
     public function __construct(
-        ConfigInterface $config,
-        SerializerInterface $serializer,
+        private ConfigInterface $config,
+        private ClientInterface $client,
+        private MessageFactory $messageFactory,
+        private LoggerInterface $logger,
     ) {
-        $this->config = $config;
-        $this->serializer = $serializer;
     }
 
-    public function request($route, $data = null): string
+    public function request(RequestInterface $request): string
     {
+//        $response = $this->httpClient->sendRequest($request);
+
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $this->config->getApiUrl() . $route);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -69,50 +77,89 @@ class CashBillApiClient implements CashBillApiClientInterface
         ];
     }
 
-    /**
-     * Fetch order details
-     */
-//    public function order($id)
-//    {
-//        return self::request( __FUNCTION__ . '/' . $id . '/' );
-//    }
-//
-//    public function orders($page = 1, $limit = 10)
-//    {
-//        return self::request( __FUNCTION__ . '/', [
-//            'page' => $page,
-//            'limit' => $limit
-//        ]);
-//    }
-
-
     public function paymentChannels(): iterable
     {
-        $json = self::request('paymentchannels/' . $this->config->getAppId());
-        $data = json_decode($json);
+//        $content = [
+//            'version' => SyliusCoreBundle::VERSION,
+//            'hostname' => $request->getHost(),
+//            'locale' => $request->getLocale(),
+//            'user_agent' => $request->headers->get('User-Agent'),
+//            'environment' => $this->environment,
+//        ];
+
+
+        $request = $this->messageFactory->createRequest(
+            Request::METHOD_GET,
+            $this->config->getApiUrl() . 'paymentchannels/' . $this->config->getAppId(),
+            ['Content-Type' => 'application/json'],
+//            json_encode($content),
+        );
+
+        try {
+            $response = $this->client->send($request, ['verify' => true]);
+        } catch (GuzzleException $e) {
+            $this->logger->critical($e->getMessage());
+
+            throw $e;
+        }
+
+        $data = json_decode($response->getBody()->getContents(), true);
         $channels = [];
 
         foreach ($data as $item) {
-            $channels[] = Channel::createFromStdClass($item);
+            $channels[] = Channel::createFromArray($item);
 
             if ($this->config->isSandbox()) {
-                $item->id = 2;
-                $item->name = 'Test 2';
-                $channels[] = Channel::createFromStdClass($item);
+                $item['id'] = 2;
+                $item['name'] = 'Name 2';
+                $item['name'] = 'Description 2';
+                $channels[] = Channel::createFromArray($item);
             }
         }
 
         return $channels;
     }
 
-
-    public function getSignature( string $string, string $key )
+    public function createTransation():
     {
-        return hash_hmac( self::SIGN_ALGORITHM, $string, $key );
-    }
+//        $content = [
+//            'version' => SyliusCoreBundle::VERSION,
+//            'hostname' => $request->getHost(),
+//            'locale' => $request->getLocale(),
+//            'user_agent' => $request->headers->get('User-Agent'),
+//            'environment' => $this->environment,
+//        ];
 
-    public function stringToSign( string $appId, string $route, string $data,  int $expires )
-    {
-        return sprintf( "%s:%s:%s:%s", $appId, $route, $data, $expires );
+
+        $request = $this->messageFactory->createRequest(
+            Request::METHOD_GET,
+            $this->config->getApiUrl() . 'paymentchannels/' . $this->config->getAppId(),
+            ['Content-Type' => 'application/json'],
+//            json_encode($content),
+        );
+
+        try {
+            $response = $this->client->send($request, ['verify' => true]);
+        } catch (GuzzleException $e) {
+            $this->logger->critical($e->getMessage());
+
+            throw $e;
+        }
+
+        $data = json_decode($response->getBody()->getContents(), true);
+        $channels = [];
+
+        foreach ($data as $item) {
+            $channels[] = Channel::createFromArray($item);
+
+            if ($this->config->isSandbox()) {
+                $item['id'] = 2;
+                $item['name'] = 'Name 2';
+                $item['name'] = 'Description 2';
+                $channels[] = Channel::createFromArray($item);
+            }
+        }
+
+        return $channels;
     }
 }

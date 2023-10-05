@@ -33,6 +33,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set($servicesIdPrefix . 'api.client', CashBillApiClient::class)
         ->args([
             service($servicesIdPrefix . 'config'),
+            service('sylius.http_client'),
+            service('sylius.http_message_factory'),
         ]);
 
     $services->set($servicesIdPrefix . 'api.cached_client', CachedCashBillApiClient::class)
