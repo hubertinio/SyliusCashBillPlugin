@@ -17,6 +17,12 @@ use Webmozart\Assert\Assert;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Channel;
 use GuzzleHttp\ClientInterface;
 use Psr\Http\Message\RequestInterface;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
+use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
+use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
+use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
+use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
  * @see https://www.apaczka.pl/integracje/
@@ -32,67 +38,18 @@ class CashBillApiClient implements CashBillApiClientInterface
         private ConfigInterface $config,
         private ClientInterface $client,
         private MessageFactory $messageFactory,
+        private SerializerInterface $serializer,
         private LoggerInterface $logger,
     ) {
     }
 
-    public function request(RequestInterface $request): string
-    {
-//        $response = $this->httpClient->sendRequest($request);
-
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $this->config->getApiUrl() . $route);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-//        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
-//        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, true);
-        curl_setopt($ch, CURLOPT_VERBOSE, false);
-//        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query(self::buildRequest($route, $data)));
-
-        $result = curl_exec($ch);
-
-        if (false === $result)
-        {
-            curl_close($ch);
-            return false;
-        }
-
-        curl_close($ch);
-
-        return $result;
-    }
-
-    public function buildRequest($route, $data = [] )
-    {
-        $data = json_encode($data);
-        $expires = strtotime( self::EXPIRES );
-
-        return [
-//            'app_id' => $this->config->getAppId(),
-            'request' => $data,
-//            'expires' => $expires,
-//            'signature' => self::getSignature(
-//                self::stringToSign( $this->config->getAppId(), $route, $data, $expires ),
-//               ::$appSecret
-//            )
-        ];
-    }
-
     public function paymentChannels(): iterable
     {
-//        $content = [
-//            'version' => SyliusCoreBundle::VERSION,
-//            'hostname' => $request->getHost(),
-//            'locale' => $request->getLocale(),
-//            'user_agent' => $request->headers->get('User-Agent'),
-//            'environment' => $this->environment,
-//        ];
-
-
         $request = $this->messageFactory->createRequest(
             Request::METHOD_GET,
             $this->config->getApiUrl() . 'paymentchannels/' . $this->config->getAppId(),
             ['Content-Type' => 'application/json'],
-//            json_encode($content),
+            $content
         );
 
         try {
@@ -120,22 +77,19 @@ class CashBillApiClient implements CashBillApiClientInterface
         return $channels;
     }
 
-    public function createTransation():
+    public function createTransaction(TransactionRequest $request): TransactionResponse
     {
-//        $content = [
-//            'version' => SyliusCoreBundle::VERSION,
-//            'hostname' => $request->getHost(),
-//            'locale' => $request->getLocale(),
-//            'user_agent' => $request->headers->get('User-Agent'),
-//            'environment' => $this->environment,
-//        ];
-
+        $request->sign = $this->getTransactionSign($request);
+        $content = $this->serializer->serialize($request, 'json', [
+            AbstractObjectNormalizer::SKIP_NULL_VALUES => true,
+            'json_encode_options' => \JSON_PRESERVE_ZERO_FRACTION
+        ]);
 
         $request = $this->messageFactory->createRequest(
-            Request::METHOD_GET,
-            $this->config->getApiUrl() . 'paymentchannels/' . $this->config->getAppId(),
+            Request::METHOD_POST,
+            $this->config->getApiUrl() . 'payment/' . $this->config->getAppId(),
             ['Content-Type' => 'application/json'],
-//            json_encode($content),
+            $content,
         );
 
         try {
@@ -146,20 +100,40 @@ class CashBillApiClient implements CashBillApiClientInterface
             throw $e;
         }
 
-        $data = json_decode($response->getBody()->getContents(), true);
-        $channels = [];
+        return $this->serializer->deserialize(
+            $response->getBody()->getContents(),
+            TransactionResponse::class,
+            'json'
+        );
+    }
 
-        foreach ($data as $item) {
-            $channels[] = Channel::createFromArray($item);
+    public function getTransactionSign(TransactionRequest $request)
+    {
+        $content = '';
+        $content .= $request->title;
+        $content .= $request->amount->value;
+        $content .= $request->amount->currencyCode;
+        $content .= $request->returnUrl;
+        $content .= $request->description;
+        $content .= $request->negativeReturnUrl;
+        $content .= $request->additionalData;
+        $content .= $request->paymentChannel;
+        $content .= $request->languageCode;
+        $content .= $request->referer;
+        $content .= $request->personalData->firstName;
+        $content .= $request->personalData->surname;
+        $content .= $request->personalData->email;
+        $content .= $request->personalData->country;
+        $content .= $request->personalData->city;
+        $content .= $request->personalData->postcode;
+        $content .= $request->personalData->street;
+        $content .= $request->personalData->house;
+        $content .= $request->personalData->flat;
+        $content .= $request->personalData->ip;
 
-            if ($this->config->isSandbox()) {
-                $item['id'] = 2;
-                $item['name'] = 'Name 2';
-                $item['name'] = 'Description 2';
-                $channels[] = Channel::createFromArray($item);
-            }
-        }
+//        $content .= $request->optionsKeyValueList;
+        $content .= $this->config->getAppSecret();
 
-        return $channels;
+        return sha1($content);
     }
 }
