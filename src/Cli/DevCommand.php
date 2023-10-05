@@ -23,18 +23,10 @@ final class DevCommand extends Command
 
     protected static $defaultDescription = 'Dev API tests';
 
-    private CashBillApiClientInterface $apiClient;
-
-    private CashBillApiClientInterface $cachedApiClient;
-
     public function __construct(
-        CashBillApiClientInterface $apiClient,
-        CashBillApiClientInterface $cachedApiClient,
+        private CashBillApiClientInterface $apiClient,
     ) {
         parent::__construct();
-
-        $this->apiClient = $apiClient;
-//        $this->cachedApiClient = $cachedApiClient;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

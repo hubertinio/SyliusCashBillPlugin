@@ -14,8 +14,13 @@ final class Configuration implements ConfigurationInterface
      */
     public function getConfigTreeBuilder(): TreeBuilder
     {
-        $treeBuilder = new TreeBuilder('hubertinio_sylius_cashbill_plugin');
+        $treeBuilder = new TreeBuilder('hubertinio_sylius_cash_bill');
         $rootNode = $treeBuilder->getRootNode();
+
+        $rootNode->children()
+            ->scalarNode('app_id')->defaultNull()->isRequired()->end()
+            ->scalarNode('app_secret')->defaultNull()->isRequired()->end()
+            ->scalarNode('api_host')->defaultValue('https://pay.cashbill.pl/ws/rest/')->end();
 
         return $treeBuilder;
     }

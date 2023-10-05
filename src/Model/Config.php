@@ -6,23 +6,21 @@ namespace Hubertinio\SyliusCashBillPlugin\Model;
 
 final class Config implements ConfigInterface
 {
-    private string $apiUrl = 'https://pay.cashbill.pl/ws/rest';
-    private string $appId;
-    private string $appSecret;
+    private string $apiHost = 'https://pay.cashbill.pl/ws/rest';
 
-    public function __construct(string $appId, string $appSecret, ?string $apiUrl = null)
-    {
-        $this->appId = $appId;
-        $this->appSecret = $appSecret;
-
-        if (null !== $apiUrl) {
-            $this->apiUrl = $apiUrl;
+    public function __construct(
+        private string $appId,
+        private string $appSecret,
+        ?string $apiHost = null
+    ) {
+        if (null !== $apiHost) {
+            $this->apiHost = $apiHost;
         }
     }
 
     public function isSandbox(): bool
     {
-        return str_contains($this->apiUrl, 'test');
+        return str_contains($this->apiHost, 'test');
     }
 
     public function setAppId(string $appId): void
@@ -35,14 +33,14 @@ final class Config implements ConfigInterface
         $this->appSecret = $appSecret;
     }
 
-    public function setApiUrl(string $url): void
+    public function setApiHost(string $url): void
     {
-        $this->apiUrl = $url;
+        $this->apiHost = $url;
     }
 
-    public function getApiUrl(): string
+    public function getApiHost(): string
     {
-        return $this->apiUrl;
+        return $this->apiHost;
     }
 
     public function getAppId(): string

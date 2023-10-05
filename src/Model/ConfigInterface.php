@@ -10,9 +10,9 @@ interface ConfigInterface
 
     public function setAppSecret(string $appSecret): void;
 
-    public function setApiUrl(string $url): void;
+    public function setApiHost(string $url): void;
 
-    public function getApiUrl(): string;
+    public function getApiHost(): string;
 
     public function getAppId(): string;
 

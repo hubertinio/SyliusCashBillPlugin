@@ -47,7 +47,7 @@ class CashBillApiClient implements CashBillApiClientInterface
     {
         $request = $this->messageFactory->createRequest(
             Request::METHOD_GET,
-            $this->config->getApiUrl() . 'paymentchannels/' . $this->config->getAppId(),
+            $this->config->getApiHost() . 'paymentchannels/' . $this->config->getAppId(),
             ['Content-Type' => 'application/json'],
             $content
         );
@@ -87,7 +87,7 @@ class CashBillApiClient implements CashBillApiClientInterface
 
         $request = $this->messageFactory->createRequest(
             Request::METHOD_POST,
-            $this->config->getApiUrl() . 'payment/' . $this->config->getAppId(),
+            $this->config->getApiHost() . 'payment/' . $this->config->getAppId(),
             ['Content-Type' => 'application/json'],
             $content,
         );

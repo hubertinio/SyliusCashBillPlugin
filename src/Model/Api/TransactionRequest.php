@@ -6,6 +6,8 @@ namespace Hubertinio\SyliusCashBillPlugin\Model\Api;
 
 final class TransactionRequest
 {
+    public int $paymentChannel = 0;
+
     public ?string $sign = null;
 
     public ?string $description = null;
@@ -15,8 +17,6 @@ final class TransactionRequest
     public ?string $returnUrl = null;
 
     public ?string $negativeReturnUrl = null;
-
-    public int $paymentChannel = 0;
 
     public ?string $referer = null;
 

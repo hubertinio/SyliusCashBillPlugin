@@ -16,6 +16,7 @@ use Hubertinio\SyliusCashBillPlugin\Service\SecurityService;
 use Sylius\Bundle\CoreBundle\Form\Type\Shipping\Calculator\ChannelBasedPerUnitRateConfigurationType;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $servicesIdPrefix  = 'hubertinio.cashbill.';
@@ -26,9 +27,9 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autoconfigure();
 
     $services->set($servicesIdPrefix . 'config', Config::class)
-        ->arg('$appId', 'rocketdesign.usermd.net')
-        ->arg('$appSecret', '5f87f568373746f7bed1833a3a631a16')
-        ->arg('$apiUrl', 'https://pay.cashbill.pl/testws/rest/');
+        ->arg('$appId', param('hubertinio_sylius_cash_bill.app_id'))
+        ->arg('$appSecret', param('hubertinio_sylius_cash_bill.app_secret'))
+        ->arg('$apiHost', param('hubertinio_sylius_cash_bill.api_host'));
 
     $services->set($servicesIdPrefix . 'api.client', CashBillApiClient::class)
         ->args([
@@ -36,12 +37,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             service('sylius.http_client'),
             service('sylius.http_message_factory'),
         ]);
-
-    $services->set($servicesIdPrefix . 'api.cached_client', CachedCashBillApiClient::class)
-        ->args([
-        service($servicesIdPrefix . 'api.client'),
-        service('cache.app'),
-    ]);
 
     $services->set($servicesIdPrefix . 'cli.ping', PingCommand::class)
         ->tag('console.command')
@@ -53,7 +48,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->tag('console.command')
         ->args([
         service($servicesIdPrefix . 'api.client'),
-        service($servicesIdPrefix . 'api.cached_client'),
     ]);
 
     $services->alias(CashBillApiClientInterface::class, $servicesIdPrefix . 'api.cached_client');
@@ -68,7 +62,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set($servicesIdPrefix . 'cli.load_services', LoadServicesCommand::class)
         ->tag('console.command')
         ->args([
-            service($servicesIdPrefix . 'api.cached_client'),
+            service($servicesIdPrefix . 'api.client'),
     ]);
 
     /**

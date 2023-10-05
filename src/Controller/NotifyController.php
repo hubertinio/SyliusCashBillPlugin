@@ -12,12 +12,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 final class NotifyController extends AbstractController
 {
-    private LoggerInterface $logger;
-
     public function __construct(
-        LoggerInterface $logger
+        private LoggerInterface $logger
     ) {
-        $this->logger = $logger;
     }
 
     public function index(Request $request): Response
