@@ -43,7 +43,7 @@ final class HubertinioSyliusCashBillExtension extends AbstractResourceExtension 
 
     protected function getMigrationsNamespace(): string
     {
-        return 'DoctrineMigrations';
+        return 'Hubertinio\SyliusCashBillPlugin\Migrations';
     }
 
     protected function getMigrationsDirectory(): string

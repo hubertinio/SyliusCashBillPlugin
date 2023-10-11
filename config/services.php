@@ -10,6 +10,7 @@ use Hubertinio\SyliusCashBillPlugin\Cli\DevCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\LoadPointsCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\LoadServicesCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\PingCommand;
+use Hubertinio\SyliusCashBillPlugin\Factory\Gateway;
 use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Hubertinio\SyliusCashBillPlugin\Service\PushService;
 use Hubertinio\SyliusCashBillPlugin\Service\SecurityService;
@@ -70,4 +71,19 @@ return static function (ContainerConfigurator $containerConfigurator): void {
      */
 //    $services->set($servicesIdPrefix . 'service.push', PushService::class);
 //    $services->set($servicesIdPrefix . 'service.security', SecurityService::class);
+
+    $services->set($servicesIdPrefix . 'factory.gateway', Gateway::class)
+//        ->tag('payum.gateway_factory_builder', ['factory' => 'payu'])
+//        ->args([
+//            service($servicesIdPrefix . 'api.client'),
+//        ])
+    ;
+
+    $services->set($servicesIdPrefix . 'payum.gateway_factory', \Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder::class)
+        ->tag('payum.gateway_factory_builder', ['factory' => 'payu'])
+        ->args([
+            service($servicesIdPrefix . 'factory.gateway'),
+        ]);
+
+
 };

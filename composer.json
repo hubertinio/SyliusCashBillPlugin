@@ -9,6 +9,7 @@
     ],
     "license": "MIT",
     "require": {
+        "payum/payum": "^1.7",
         "php": "^8.0",
         "sylius/sylius": "^1.12",
         "sylius/mailer-bundle":  "^1.8 || ^2.0@beta",
