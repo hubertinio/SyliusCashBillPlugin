@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace Hubertinio\SyliusCashBillPlugin\Factory;
+namespace Hubertinio\SyliusCashBillPlugin;
 
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
-use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Payum\Core\Bridge\Spl\ArrayObject;
-use Payum\Core\GatewayFactory As PayumGatewayFactory;
+use Payum\Core\GatewayFactory;
 
-final class GatewayFactory extends PayumGatewayFactory
+final class CashBillGatewayFactory extends GatewayFactory
 {
     protected function populateConfig(ArrayObject $config): void
     {

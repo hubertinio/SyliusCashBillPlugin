@@ -14,13 +14,12 @@ use Hubertinio\SyliusCashBillPlugin\Cli\DevCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\FetchPaymentChannelsCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\PingCommand;
 use Hubertinio\SyliusCashBillPlugin\Factory\ConfigFactory;
-use Hubertinio\SyliusCashBillPlugin\Factory\GatewayFactory;
+use Hubertinio\SyliusCashBillPlugin\CashBillGatewayFactory;
 use Hubertinio\SyliusCashBillPlugin\Form\Type\CashBillGatewayConfigurationType;
 use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Hubertinio\SyliusCashBillPlugin\Provider\PaymentDescriptionProvider;
 use Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
@@ -77,17 +76,10 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             service($servicesIdPrefix . 'api.client'),
     ]);
 
-    $services->set($servicesIdPrefix . 'factory.gateway_factory', GatewayFactory::class)
-//        ->tag('payum.gateway_factory_builder', ['factory' => 'payu'])
-//        ->args([
-//            service($servicesIdPrefix . 'api.client'),
-//        ])
-    ;
-
     $services->set($servicesIdPrefix . 'gateway_factory_builder', GatewayFactoryBuilder::class)
         ->tag('payum.gateway_factory_builder', ['factory' => CashBillBridgeInterface::NAME])
         ->args([
-            service($servicesIdPrefix . 'factory.gateway_factory'),
+            CashBillGatewayFactory::class
         ]);
 
     $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class);
