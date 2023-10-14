@@ -26,13 +26,10 @@ use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
  * @see https://www.apaczka.pl/integracje/
- *
- * @TODO Symfony Http Client Interface (CurlWrapper)
  */
 class CashBillApiClient implements CashBillApiClientInterface
 {
     private const SIGN_ALGORITHM = 'sha1';
-    private const EXPIRES = '+30min';
 
     public function __construct(
         private ConfigInterface $config,
@@ -48,8 +45,7 @@ class CashBillApiClient implements CashBillApiClientInterface
         $request = $this->messageFactory->createRequest(
             Request::METHOD_GET,
             $this->config->getApiHost() . 'paymentchannels/' . $this->config->getAppId(),
-            ['Content-Type' => 'application/json'],
-            $content
+            ['Content-Type' => 'application/json']
         );
 
         try {
@@ -69,7 +65,7 @@ class CashBillApiClient implements CashBillApiClientInterface
             if ($this->config->isSandbox()) {
                 $item['id'] = 2;
                 $item['name'] = 'Name 2';
-                $item['name'] = 'Description 2';
+                $item['description'] = 'Description 2';
                 $channels[] = Channel::createFromArray($item);
             }
         }
@@ -107,7 +103,7 @@ class CashBillApiClient implements CashBillApiClientInterface
         );
     }
 
-    public function getTransactionSign(TransactionRequest $request)
+    public function getTransactionSign(TransactionRequest $request): string
     {
         $content = '';
         $content .= $request->title;
@@ -134,6 +130,13 @@ class CashBillApiClient implements CashBillApiClientInterface
 //        $content .= $request->optionsKeyValueList;
         $content .= $this->config->getAppSecret();
 
-        return sha1($content);
+        $hash1 = hash(self::SIGN_ALGORITHM, $content);
+        $hash2 = sha1($content);
+
+        if ($hash1 !== $hash2) {
+            throw new \Exception("asfdasf asfsad fasd f");
+        }
+
+        return $hash2;
     }
 }

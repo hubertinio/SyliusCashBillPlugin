@@ -1,0 +1,8 @@
+hubertinio:
+  cashbill:
+    environment: Środowisko
+    secure: Produkcja
+    sandbox: Testowe
+    gateway_label: CashBill
+    app_id: API ID
+    app_secret: API klucz

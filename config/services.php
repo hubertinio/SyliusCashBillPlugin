@@ -2,22 +2,25 @@
 
 declare(strict_types=1);
 
+use Hubertinio\SyliusCashBillPlugin\Action\CaptureAction;
+use Hubertinio\SyliusCashBillPlugin\Action\ConvertPaymentAction;
+use Hubertinio\SyliusCashBillPlugin\Action\NotifyAction;
+use Hubertinio\SyliusCashBillPlugin\Action\StatusAction;
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
-use Hubertinio\SyliusCashBillPlugin\Api\CachedCashBillApiClient;
-use Hubertinio\SyliusCashBillPlugin\Calculator\PerCashBillOrderRateCalculator;
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridge;
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Cli\DevCommand;
-use Hubertinio\SyliusCashBillPlugin\Cli\LoadPointsCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\LoadServicesCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\PingCommand;
 use Hubertinio\SyliusCashBillPlugin\Factory\Gateway;
+use Hubertinio\SyliusCashBillPlugin\Form\Type\CashBillGatewayConfigurationType;
 use Hubertinio\SyliusCashBillPlugin\Model\Config;
-use Hubertinio\SyliusCashBillPlugin\Service\PushService;
-use Hubertinio\SyliusCashBillPlugin\Service\SecurityService;
-use Sylius\Bundle\CoreBundle\Form\Type\Shipping\Calculator\ChannelBasedPerUnitRateConfigurationType;
+use Hubertinio\SyliusCashBillPlugin\Provider\PaymentDescriptionProvider;
+use Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $servicesIdPrefix  = 'hubertinio.cashbill.';
@@ -53,24 +56,11 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->alias(CashBillApiClientInterface::class, $servicesIdPrefix . 'api.cached_client');
 
-//    $services->set($servicesIdPrefix . 'cli.load_points', LoadPointsCommand::class)
-//        ->tag('console.command')
-//        ->args([
-//            service($servicesIdPrefix . 'api.cached_client'),
-//        ]
-//    );
-
     $services->set($servicesIdPrefix . 'cli.load_services', LoadServicesCommand::class)
         ->tag('console.command')
         ->args([
             service($servicesIdPrefix . 'api.client'),
     ]);
-
-    /**
-     * @TODO controller od push ogarnąć
-     */
-//    $services->set($servicesIdPrefix . 'service.push', PushService::class);
-//    $services->set($servicesIdPrefix . 'service.security', SecurityService::class);
 
     $services->set($servicesIdPrefix . 'factory.gateway', Gateway::class)
 //        ->tag('payum.gateway_factory_builder', ['factory' => 'payu'])
@@ -79,11 +69,56 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 //        ])
     ;
 
-    $services->set($servicesIdPrefix . 'payum.gateway_factory', \Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder::class)
-        ->tag('payum.gateway_factory_builder', ['factory' => 'payu'])
+    $services->set($servicesIdPrefix . 'gateway_factory', GatewayFactoryBuilder::class)
+        ->tag('payum.gateway_factory_builder', ['factory' => CashBillBridgeInterface::NAME])
         ->args([
             service($servicesIdPrefix . 'factory.gateway'),
         ]);
 
+    $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class);
 
+    $services->set($servicesIdPrefix . 'provider.payment_description_provider', PaymentDescriptionProvider::class);
+
+    $services->set($servicesIdPrefix . 'form.type.gateway_configuration', CashBillGatewayConfigurationType::class)
+        ->tag('form.type')
+        ->tag('sylius.gateway_configuration_type', [
+            'type' => CashBillBridgeInterface::NAME,
+            'label' => $servicesIdPrefix . 'factory.gateway_label']
+        )
+    ;
+
+    $services->set($servicesIdPrefix . 'action.capture', CaptureAction::class)
+        ->args([
+            service($servicesIdPrefix . 'bridge'),
+            service($servicesIdPrefix . 'provider.payment_description_provider'),
+        ]);
+
+    $services->set($servicesIdPrefix . 'action.convert_payment', ConvertPaymentAction::class)
+        ->tag('payum.action', [
+            'factory' => CashBillBridgeInterface::NAME,
+            'alias' => 'payum.action.convert_payment'
+        ])
+        ->args([
+            service($servicesIdPrefix . 'bridge'),
+            service($servicesIdPrefix . 'provider.payment_description_provider'),
+        ]);
+
+    $services->set($servicesIdPrefix . 'action.notify', NotifyAction::class)
+        ->tag('payum.action', [
+            'factory' => CashBillBridgeInterface::NAME,
+            'alias' => 'payum.action.notify'
+        ])
+        ->args([
+            service($servicesIdPrefix . 'bridge'),
+            service('logger'),
+        ]);
+
+    $services->set($servicesIdPrefix . 'action.status', StatusAction::class)
+        ->tag('payum.action', [
+            'factory' => CashBillBridgeInterface::NAME,
+            'alias' => 'payum.action.status'
+        ])
+        ->args([
+            service($servicesIdPrefix . 'bridge'),
+        ]);
 };

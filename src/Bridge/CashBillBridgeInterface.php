@@ -6,8 +6,10 @@ use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
 
 interface CashBillBridgeInterface
 {
-    public const SANDBOX_ENVIRONMENT = 'sandbox';
-    public const SECURE_ENVIRONMENT = 'secure';
+    public const NAME = 'cashbill';
+
+    public const ENVIRONMENT_SANDBOX = 'sandbox';
+    public const ENVIRONMENT_PROD = 'prod';
 
     public const NEW_API_STATUS = 'NEW';
     public const PENDING_API_STATUS = 'PENDING';
@@ -22,10 +24,8 @@ interface CashBillBridgeInterface
 
     public function setAuthorizationData(
         string $environment,
-        string $signatureKey,
-        string $posId,
-        string $clientId,
-        string $clientSecret
+        string $appId,
+        string $appSecret
     ): void;
 
     public function create(array $order): ?TransactionResponse;

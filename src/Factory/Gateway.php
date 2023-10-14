@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Factory;
 
-use BitBag\SyliusPayUPlugin\Bridge\OpenPayUBridgeInterface;
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
 
@@ -14,22 +14,22 @@ final class Gateway extends GatewayFactory
     {
         $config->defaults(
             [
-                'cashbill.factory_name' => 'cashbill',
-                'cashbill.factory_title' => 'CashBill',
+                'hubertinio.cashbill.factory_name' => CashBillBridgeInterface::NAME,
+                'hubertinio.cashbill.factory_title' => 'CashBill',
             ]
         );
 
-        if (false === (bool) $config['cashbill.api']) {
-            $config['cashbill.default_options'] = [
-                'environment' => OpenPayUBridgeInterface::SANDBOX_ENVIRONMENT,
+        if (false === (bool) $config['hubertinio.cashbill.api']) {
+            $config['hubertinio.cashbill.default_options'] = [
+                'environment' => CashBillBridgeInterface::ENVIRONMENT_SANDBOX,
                 'app_id' => '',
                 'app_secret' => '',
             ];
 
-            $config->defaults($config['cashbill.default_options']);
-            $config['cashbill.required_options'] = ['app_id', 'app_secret'];
-            $config['cashbill.api'] = static function (ArrayObject $config): array {
-                $config->validateNotEmpty($config['cashbill.required_options']);
+            $config->defaults($config['hubertinio.cashbill.default_options']);
+            $config['hubertinio.cashbill.required_options'] = ['app_id', 'app_secret'];
+            $config['hubertinio.cashbill.api'] = static function (ArrayObject $config): array {
+                $config->validateNotEmpty($config['hubertinio.cashbill.required_options']);
 
                 return [
                     'environment' => $config['environment'],
