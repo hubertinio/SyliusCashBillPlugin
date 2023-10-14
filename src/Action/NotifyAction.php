@@ -18,7 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Throwable;
 use Webmozart\Assert\Assert;
 
-final class NotifyAction  implements ActionInterface, ApiAwareInterface
+final class NotifyAction implements ActionInterface, ApiAwareInterface
 {
     use GatewayAwareTrait;
 

@@ -21,19 +21,6 @@ final class HubertinioSyliusCashBillExtension extends AbstractResourceExtension 
     {
         $loader = new PhpFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
         $loader->load('services.php');
-
-        $config = $this->processConfiguration($this->getConfiguration([], $container), $configs);
-
-        foreach (['app_id', 'app_secret', 'api_host'] as $param) {
-            if (!isset($config[$param])) {
-                continue;
-            }
-
-            $container->setParameter(
-                'hubertinio_sylius_cash_bill.' . $param,
-                $config[$param],
-            );
-        }
     }
 
     public function prepend(ContainerBuilder $container): void

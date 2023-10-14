@@ -31,8 +31,8 @@ final class DevCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-//        $this->getPayments($input, $output);
-        $this->createTransaction($input, $output);
+        $this->getPayments($input, $output);
+//        $this->createTransaction($input, $output);
 
         return Command::SUCCESS;
     }

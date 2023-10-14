@@ -25,7 +25,7 @@ use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
- * @see https://www.apaczka.pl/integracje/
+ * @see https://panel.cashbill.pl/dokumentacja_api_v2.php
  */
 class CashBillApiClient implements CashBillApiClientInterface
 {
