@@ -10,14 +10,12 @@ use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridge;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
+use Hubertinio\SyliusCashBillPlugin\CashBillGatewayFactory;
 use Hubertinio\SyliusCashBillPlugin\Cli\DevCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\FetchPaymentChannelsCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\PingCommand;
 use Hubertinio\SyliusCashBillPlugin\Factory\ApiClientFactory;
-use Hubertinio\SyliusCashBillPlugin\Factory\ConfigFactory;
-use Hubertinio\SyliusCashBillPlugin\CashBillGatewayFactory;
 use Hubertinio\SyliusCashBillPlugin\Form\Type\CashBillGatewayConfigurationType;
-use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Hubertinio\SyliusCashBillPlugin\Provider\PaymentDescriptionProvider;
 use Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -29,22 +27,14 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services = $containerConfigurator->services();
     $services->defaults()->public()->autowire()->autoconfigure();
 
-    $services->set($servicesIdPrefix . 'config_factory', ConfigFactory::class)
-        ->args([
-            service('sylius.repository.gateway_config')
-        ]);
-
     $services->set($servicesIdPrefix . 'api.client_factory', ApiClientFactory::class)
         ->args([
-            service($servicesIdPrefix . 'config_factory'),
+            service('sylius.repository.gateway_config'),
             service('sylius.http_client'),
             service('sylius.http_message_factory'),
             service('serializer'),
             service('logger'),
         ]);
-
-    $services->set($servicesIdPrefix . 'config', Config::class)
-        ->factory(service($servicesIdPrefix . 'config_factory'));
 
     $services->set($servicesIdPrefix . 'api.client', CashBillApiClient::class)
         ->factory(service($servicesIdPrefix . 'api.client_factory'))
@@ -52,13 +42,13 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'factory' => CashBillBridgeInterface::NAME,
             'alias' => 'payum.api.cashbill',
         ])
-        ->args([
-//            service($servicesIdPrefix . 'config'),
-            service('sylius.http_client'),
-            service('sylius.http_message_factory'),
-            service('serializer'),
-            service('logger'),
-        ]);
+//        ->args([
+//            service('sylius.http_client'),
+//            service('sylius.http_message_factory'),
+//            service('serializer'),
+//            service('logger'),
+//        ])
+    ;
 
     $services->set($servicesIdPrefix . 'cli.ping', PingCommand::class)
         ->tag('console.command')
@@ -107,7 +97,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ])
         ->args([
             service($servicesIdPrefix . 'api.client'),
-            service($servicesIdPrefix . 'bridge'),
+            service('sylius.repository.payment_method'),
             service($servicesIdPrefix . 'provider.payment_description_provider'),
         ]);
 

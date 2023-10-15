@@ -46,8 +46,6 @@ final class DevCommand extends Command
         $personalData->firstName = $faker->firstName;
         $personalData->surname = $faker->lastName;
         $personalData->email = $faker->email;
-        $personalData->city = $faker->city;
-        $personalData->country = $faker->country;
 
         $request = new TransactionRequest(
             'Test ' . date('Y-m-d H:i:s'),
@@ -56,8 +54,7 @@ final class DevCommand extends Command
             $personalData
         );
 
-        $request->description = $faker->words(3, true);
-//        $request->referer = 'https://rocketdesign.usermd.net';
+//        $request->description = $faker->words(3, true);
 
         /** @var TransactionResponse $response */
         $response = $this->apiClient->createTransaction($request);

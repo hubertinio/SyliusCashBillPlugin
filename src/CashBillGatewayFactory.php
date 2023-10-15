@@ -27,14 +27,14 @@ final class CashBillGatewayFactory extends GatewayFactory
 
             $config->defaults($config['payum.default_options']);
             $config['payum.required_options'] = ['environment', 'app_id', 'app_secret'];
-            $config['payum.api'] = static function (ArrayObject $config): Config {
+            $config['payum.api'] = static function (ArrayObject $config): array {
                 $config->validateNotEmpty($config['payum.required_options']);
 
-                return new Config(
+                return [
                     $config['app_id'],
                     $config['app_secret'],
                     $config['environment'],
-                );
+                ];
             };
         }
 

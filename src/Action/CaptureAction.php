@@ -4,24 +4,19 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Action;
 
-use Faker\Factory;
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
-use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Exception\CashBillException;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\PersonalData;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
-use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
 use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\ApiAwareTrait;
-use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
-use Payum\Core\Reply\HttpRedirect;
 use Payum\Core\Request\Capture;
 use Payum\Core\Security\GenericTokenFactoryAwareInterface;
 use Payum\Core\Security\GenericTokenFactoryInterface;
@@ -32,7 +27,7 @@ use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
 use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Model\PaymentInterface;
-use Sylius\Component\Core\Model\PaymentMethod;
+use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Throwable;
 use Webmozart\Assert\Assert;
 
@@ -45,14 +40,14 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
 
     public function __construct(
         private CashBillApiClient $apiClient,
-        private CashBillBridgeInterface $bridge,
+        private RepositoryInterface $paymentRepository,
         private PaymentDescriptionProviderInterface $paymentDescriptionProvider,
     ) {
     }
 
     public function setApi($api): void
     {
-        if (false === $api instanceof Config) {
+        if (! is_array($api)) {
             throw new UnsupportedApiException('Not supported. Expected to be set as array.');
         }
 
@@ -83,11 +78,16 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             $transaction = $this->prepareTransaction($request->getToken(), $payment->getOrder(), $payment);
             $result = $this->apiClient->createTransaction($transaction);
 
-            throw new HttpRedirect($result->redirectUrl);
+            $details = $model->getDetails();
+            $details['cashBillUrl'] = $result->redirectUrl;
+            $model->setDetails($details);
+            $this->paymentRepository->add($model);
+
+            header("Location: {$result->redirectUrl}");
+            exit;
         } catch (Throwable $e) {
             throw CashBillException::createFromStatus($e->getMessage());
         }
-
     }
 
     private function prepareTransaction(TokenInterface $token, OrderInterface $order, PaymentInterface $payment): TransactionRequest
@@ -107,16 +107,21 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
         $notifyToken = $this->tokenFactory->createNotifyToken($token->getGatewayName(), $token->getDetails());
         $amount = Amount::createFromInt($order->getTotal(), $order->getCurrencyCode());
 
-        $data = [];
-        $data['continueUrl'] = $token->getTargetUrl();
-        $data['notifyUrl'] = $notifyToken->getTargetUrl();
-        $data['buyer'] = $customer->getUser();
-
         $personalData = new PersonalData();
         $personalData->email = (string) $customer->getEmail();
         $personalData->firstName = (string) $customer->getFirstName();
         $personalData->surname = (string) $customer->getLastName();
-        $personalData->ip = $order->getCustomerIp();
+//        $personalData->ip = $order->getCustomerIp();
+
+        $address = $customer->getDefaultAddress();
+
+//        if ($address) {
+//            $personalData->country = $address->getCountryCode();
+//            $personalData->city = $address->getCity();
+//            $personalData->postcode = $address->getPostcode();
+//            $personalData->street = $address->getStreet();
+//        }
+
 
         $title = $this->paymentDescriptionProvider->getPaymentDescription($payment);
         $language = $this->getFallbackLocaleCode($order->getLocaleCode());
@@ -128,9 +133,9 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             $personalData
         );
 
-        $transaction->description = $this->getDescription($order);
-        $transaction->returnUrl = $notifyToken->getTargetUrl();
-        $transaction->negativeReturnUrl = $notifyToken->getTargetUrl();
+//        $transaction->description = $this->getDescription($order);
+//        $transaction->returnUrl = $notifyToken->getTargetUrl();
+//        $transaction->negativeReturnUrl = $notifyToken->getTargetUrl();f
 
         return $transaction;
     }

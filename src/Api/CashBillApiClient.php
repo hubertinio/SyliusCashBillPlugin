@@ -6,6 +6,7 @@ namespace Hubertinio\SyliusCashBillPlugin\Api;
 
 use http\Client;
 use Http\Message\MessageFactory;
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Model\ConfigInterface;
 use Psr\Log\LoggerInterface;
 use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
@@ -31,26 +32,44 @@ class CashBillApiClient implements CashBillApiClientInterface
 {
     private const SIGN_ALGORITHM = 'sha1';
 
-    private ConfigInterface $config;
+    private string $apiHost;
 
     public function __construct(
+        private string $appId,
+        private string $appSecret,
+        private string $environment,
         private ClientInterface $client,
         private MessageFactory $messageFactory,
         private SerializerInterface $serializer,
         private LoggerInterface $logger,
     ) {
+        $this->setEnv($this->environment);
     }
 
-    public function setConfig(ConfigInterface $config): void
+    private function setEnv(string $environment): void
     {
-        $this->config = $config;
+        $this->apiHost = match($this->environment) {
+            CashBillBridgeInterface::ENVIRONMENT_SANDBOX => 'https://pay.cashbill.pl/testws/rest/',
+            default => 'https://pay.cashbill.pl/ws/rest/',
+        };
+    }
+
+    public function setConfig(array $data): void
+    {
+        Assert::keyExists($data, 'app_id');
+        Assert::keyExists($data, 'app_secret');
+        Assert::keyExists($data, 'environment');
+
+        $this->setAppId((string) $data['app_id']);
+        $this->setAppSecret((string) $data['app_secret']);
+        $this->setEnv((string) $data['environment']);
     }
 
     public function paymentChannels(): iterable
     {
         $request = $this->messageFactory->createRequest(
             Request::METHOD_GET,
-            $this->config->getApiHost() . 'paymentchannels/' . $this->config->getAppId(),
+            $this->getApiHost() . 'paymentchannels/' . $this->getAppId(),
             ['Content-Type' => 'application/json']
         );
 
@@ -68,12 +87,12 @@ class CashBillApiClient implements CashBillApiClientInterface
         foreach ($data as $item) {
             $channels[] = Channel::createFromArray($item);
 
-            if ($this->config->isSandbox()) {
-                $item['id'] = 2;
-                $item['name'] = 'Name 2';
-                $item['description'] = 'Description 2';
-                $channels[] = Channel::createFromArray($item);
-            }
+//            if ($this->isSandbox()) {
+//                $item['id'] = 2;
+//                $item['name'] = 'Name 2';
+//                $item['description'] = 'Description 2';
+//                $channels[] = Channel::createFromArray($item);
+//            }
         }
 
         return $channels;
@@ -89,7 +108,7 @@ class CashBillApiClient implements CashBillApiClientInterface
 
         $request = $this->messageFactory->createRequest(
             Request::METHOD_POST,
-            $this->config->getApiHost() . 'payment/' . $this->config->getAppId(),
+            $this->getApiHost() . 'payment/' . $this->getAppId(),
             ['Content-Type' => 'application/json'],
             $content,
         );
@@ -133,8 +152,43 @@ class CashBillApiClient implements CashBillApiClientInterface
         $content .= $request->personalData->ip;
 
 //        $content .= $request->optionsKeyValueList;
-        $content .= $this->config->getAppSecret();
+        $content .= $this->getAppSecret();
 
         return hash(self::SIGN_ALGORITHM, $content);
+    }
+
+    public function isSandbox(): bool
+    {
+        return str_contains($this->apiHost, 'test');
+    }
+
+    public function setAppId(string $appId): void
+    {
+        $this->appId = $appId;
+    }
+
+    public function setAppSecret(string $appSecret): void
+    {
+        $this->appSecret = $appSecret;
+    }
+
+    public function setApiHost(string $url): void
+    {
+        $this->apiHost = $url;
+    }
+
+    public function getApiHost(): string
+    {
+        return $this->apiHost;
+    }
+
+    public function getAppId(): string
+    {
+        return $this->appId;
+    }
+
+    public function getAppSecret(): string
+    {
+        return $this->appSecret;
     }
 }
