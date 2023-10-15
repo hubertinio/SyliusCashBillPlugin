@@ -81,6 +81,9 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
 
             $details = $model->getDetails();
             $details['cashBillUrl'] = $result->redirectUrl;
+            $details['cashBillId'] = $result->id;
+            $details['cashBillSign'] = $transaction->sign;
+
             $model->setDetails($details);
             $this->paymentRepository->add($model);
 

@@ -1,5 +1,5 @@
-hubertinio:
-  cashbill:
+hubertinio_sylius_cashbill_plugin:
+  ui:
     environment: Środowisko
     secure: Produkcja
     sandbox: Testowe

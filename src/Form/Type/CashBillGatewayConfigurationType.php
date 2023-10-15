@@ -21,21 +21,21 @@ final class CashBillGatewayConfigurationType extends AbstractType
                 ChoiceType::class,
                 [
                     'choices' => [
-                        'hubertinio.cashbill.prod' => CashBillBridgeInterface::ENVIRONMENT_PROD,
-                        'hubertinio.cashbill.sandbox' => CashBillBridgeInterface::ENVIRONMENT_SANDBOX,
+                        'hubertinio_sylius_cashbill_plugin.ui.prod' => CashBillBridgeInterface::ENVIRONMENT_PROD,
+                        'hubertinio_sylius_cashbill_plugin.ui.sandbox' => CashBillBridgeInterface::ENVIRONMENT_SANDBOX,
                     ],
-                    'label' => 'hubertinio.cashbill.environment',
+                    'label' => 'hubertinio_sylius_cashbill_plugin.ui.environment',
                 ]
             )
             ->add(
                 'app_id',
                 TextType::class,
                 [
-                    'label' => 'hubertinio.cashbill.app_id',
+                    'label' => 'hubertinio_sylius_cashbill_plugin.ui.app_id',
                     'constraints' => [
                         new NotBlank(
                             [
-                                'message' => 'hubertinio.cashbill.gateway_configuration.app_id.not_blank',
+                                'message' => 'hubertinio_sylius_cashbill_plugin.gateway_configuration.app_id.not_blank',
                                 'groups' => ['sylius'],
                             ]
                         ),
@@ -45,11 +45,11 @@ final class CashBillGatewayConfigurationType extends AbstractType
                 'app_secret',
                 TextType::class,
                 [
-                    'label' => 'hubertinio.cashbill.app_secret',
+                    'label' => 'hubertinio_sylius_cashbill_plugin.ui.app_secret',
                     'constraints' => [
                         new NotBlank(
                             [
-                                'message' => 'hubertinio.cashbill.gateway_configuration.app_secret.not_blank',
+                                'message' => 'hubertinio_sylius_cashbill_plugin.gateway_configuration.app_secret.not_blank',
                                 'groups' => ['sylius'],
                             ]
                         ),

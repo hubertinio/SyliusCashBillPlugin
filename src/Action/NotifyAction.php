@@ -14,6 +14,7 @@ use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\Notify;
 use Psr\Log\LoggerInterface;
+use Sylius\Bundle\PayumBundle\Model\PaymentSecurityToken;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Throwable;
 use Webmozart\Assert\Assert;
@@ -37,6 +38,7 @@ final class NotifyAction implements ActionInterface
         $payment = $request->getFirstModel();
         Assert::isInstanceOf($payment, PaymentInterface::class);
 
+        /** @var PaymentSecurityToken $model */
         $model = $request->getModel();
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
@@ -72,6 +74,6 @@ final class NotifyAction implements ActionInterface
 
     public function supports($request): bool
     {
-        return $request instanceof Notify && $request->getModel() instanceof ArrayObject;
+        return $request instanceof Notify && $request->getModel() instanceof PaymentSecurityToken;
     }
 }

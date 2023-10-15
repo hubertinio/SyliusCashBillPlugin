@@ -22,7 +22,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
-    $servicesIdPrefix  = 'hubertinio.cashbill.';
+    $servicesIdPrefix  = 'hubertinio_sylius_cashbill_plugin.';
 
     $services = $containerConfigurator->services();
     $services->defaults()->public()->autowire()->autoconfigure();
@@ -81,7 +81,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->tag('form.type')
         ->tag('sylius.gateway_configuration_type', [
             'type' => CashBillBridgeInterface::NAME,
-            'label' => 'CashBill'
+            'label' => 'hubertinio_sylius_cashbill_plugin.ui.gateway_label'
         ]);
 
     $services->set($servicesIdPrefix . 'action.capture', CaptureAction::class)
