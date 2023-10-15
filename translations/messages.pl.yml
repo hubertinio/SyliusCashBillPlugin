@@ -1,7 +1,7 @@
 hubertinio_sylius_cashbill_plugin:
   ui:
     environment: Środowisko
-    secure: Produkcja
+    prod: Produkcja
     sandbox: Testowe
     gateway_label: CashBill
     app_id: API ID
