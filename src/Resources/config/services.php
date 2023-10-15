@@ -42,12 +42,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'factory' => CashBillBridgeInterface::NAME,
             'alias' => 'payum.api.cashbill',
         ])
-//        ->args([
-//            service('sylius.http_client'),
-//            service('sylius.http_message_factory'),
-//            service('serializer'),
-//            service('logger'),
-//        ])
     ;
 
     $services->set($servicesIdPrefix . 'cli.ping', PingCommand::class)

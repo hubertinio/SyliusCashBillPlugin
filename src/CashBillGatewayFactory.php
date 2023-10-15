@@ -31,9 +31,9 @@ final class CashBillGatewayFactory extends GatewayFactory
                 $config->validateNotEmpty($config['payum.required_options']);
 
                 return [
-                    $config['app_id'],
-                    $config['app_secret'],
-                    $config['environment'],
+                    'app_id' => $config['app_id'],
+                    'app_secret' => $config['app_secret'],
+                    'environment' => $config['environment'],
                 ];
             };
         }

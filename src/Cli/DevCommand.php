@@ -37,8 +37,8 @@ final class DevCommand extends Command
     {
         $faker = Factory::create('pl_PL');
 
-        $amount = new Amount(
-            $faker->randomFloat(2, 20, 100),
+        $amount = Amount::createFromInt(
+            $faker->randomNumber(5, true),
             $faker->randomElement(['PLN', 'USD', 'EUR']),
         );
 
@@ -54,7 +54,7 @@ final class DevCommand extends Command
             $personalData
         );
 
-//        $request->description = $faker->words(3, true);
+        $request->description = $faker->words(5, true);
 
         /** @var TransactionResponse $response */
         $response = $this->apiClient->createTransaction($request);

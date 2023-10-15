@@ -47,11 +47,12 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
 
     public function setApi($api): void
     {
-        if (! is_array($api)) {
+        try {
+            Assert::isArray($api);
+            $this->apiClient->setConfig($api);
+        } catch (\InvalidArgumentException) {
             throw new UnsupportedApiException('Not supported. Expected to be set as array.');
         }
-
-        $this->apiClient->setConfig($api);
     }
 
     public function setGenericTokenFactory(GenericTokenFactoryInterface $genericTokenFactory = null): void
@@ -111,17 +112,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
         $personalData->email = (string) $customer->getEmail();
         $personalData->firstName = (string) $customer->getFirstName();
         $personalData->surname = (string) $customer->getLastName();
-//        $personalData->ip = $order->getCustomerIp();
-
-        $address = $customer->getDefaultAddress();
-
-//        if ($address) {
-//            $personalData->country = $address->getCountryCode();
-//            $personalData->city = $address->getCity();
-//            $personalData->postcode = $address->getPostcode();
-//            $personalData->street = $address->getStreet();
-//        }
-
+        $personalData->ip = $order->getCustomerIp();
 
         $title = $this->paymentDescriptionProvider->getPaymentDescription($payment);
         $language = $this->getFallbackLocaleCode($order->getLocaleCode());
@@ -133,9 +124,9 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             $personalData
         );
 
-//        $transaction->description = $this->getDescription($order);
-//        $transaction->returnUrl = $notifyToken->getTargetUrl();
-//        $transaction->negativeReturnUrl = $notifyToken->getTargetUrl();f
+        $transaction->description = $this->getDescription($order);
+        $transaction->returnUrl = $notifyToken->getTargetUrl();
+        $transaction->negativeReturnUrl = $notifyToken->getTargetUrl();
 
         return $transaction;
     }
