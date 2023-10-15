@@ -4,10 +4,18 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Action;
 
+use Faker\Factory;
+use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Exception\CashBillException;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\PersonalData;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
+use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
+use Payum\Core\ApiAwareTrait;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
@@ -22,75 +30,33 @@ use Sylius\Bundle\PayumBundle\Provider\PaymentDescriptionProviderInterface;
 use Sylius\Component\Core\Model\CustomerInterface;
 use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\OrderItemInterface;
+use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Sylius\Component\Core\Model\PaymentMethod;
+use Throwable;
 use Webmozart\Assert\Assert;
 
 final class CaptureAction implements ActionInterface, ApiAwareInterface, GenericTokenFactoryAwareInterface, GatewayAwareInterface
 {
     use GatewayAwareTrait;
+    use ApiAwareTrait;
 
-    private GenericTokenFactoryInterface $tokenFactory;
+    private ?GenericTokenFactoryInterface $tokenFactory;
 
     public function __construct(
+        private CashBillApiClient $apiClient,
         private CashBillBridgeInterface $bridge,
-        private PaymentDescriptionProviderInterface $paymentDescriptionProvider
+        private PaymentDescriptionProviderInterface $paymentDescriptionProvider,
     ) {
     }
 
     public function setApi($api): void
     {
-        if (false === is_array($api)) {
+        if (false === $api instanceof Config) {
             throw new UnsupportedApiException('Not supported. Expected to be set as array.');
         }
 
-        $this->bridge->setAuthorizationData(
-            $api['environment'],
-            $api['app_id'],
-            $api['app_secret']
-        );
-    }
-
-    public function execute($request): void
-    {
-        RequestNotSupportedException::assertSupports($this, $request);
-
-        $model = $request->getModel();
-
-        /** @var PaymentInterface $payment */
-        $payment = $request->getFirstModel();
-
-        /** @var TokenInterface $token */
-        $token = $request->getToken();
-        $data = $this->prepareOrder($token, $payment->getOrder(), $payment);
-
-        $result = $this->bridge->create($data);
-
-        if (null !== $model['orderId']) {
-            $response = $this->bridge->retrieve((string) $model['orderId'])->getResponse();
-            Assert::keyExists($response->orders, 0);
-
-            if (CashBillBridgeInterface::SUCCESS_API_STATUS === $response->status->statusCode) {
-                $model['statusPayU'] = $response->orders[0]->status;
-                $request->setModel($model);
-            }
-
-            if (CashBillBridgeInterface::NEW_API_STATUS !== $response->orders[0]->status) {
-                return;
-            }
-        }
-
-        if (null !== $result) {
-            $response = $result->getResponse();
-
-            if ($response && CashBillBridgeInterface::SUCCESS_API_STATUS === $response->status->statusCode) {
-                $model['orderId'] = $response->orderId;
-                $request->setModel($model);
-
-                throw new HttpRedirect($response->redirectUri);
-            }
-        }
-
-        throw CashBillException::createFromStatus($response->status);
+        $this->apiClient->setConfig($api);
     }
 
     public function setGenericTokenFactory(GenericTokenFactoryInterface $genericTokenFactory = null): void
@@ -100,21 +66,32 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
 
     public function supports($request): bool
     {
-        return $request instanceof Capture && $request->getModel() instanceof ArrayObject;
+        return $request instanceof Capture && $request->getModel() instanceof Payment;
     }
 
-    private function prepareOrder(TokenInterface $token, OrderInterface $order, PaymentInterface $payment): array
+    public function execute($request): void
     {
-        $notifyToken = $this->tokenFactory->createNotifyToken($token->getGatewayName(), $token->getDetails());
-        $data = [];
+        RequestNotSupportedException::assertSupports($this, $request);
 
-        $data['continueUrl'] = $token->getTargetUrl();
-        $data['notifyUrl'] = $notifyToken->getTargetUrl();
-        $data['customerIp'] = $order->getCustomerIp();
-        $data['merchantPosId'] = OpenPayU_Configuration::getMerchantPosId();
-        $data['description'] = $this->paymentDescriptionProvider->getPaymentDescription($payment);
-        $data['currencyCode'] = $order->getCurrencyCode();
-        $data['totalAmount'] = $order->getTotal();
+        try {
+            /** @var Payment $model */
+            $model = $request->getModel();
+
+            /** @var PaymentInterface $payment */
+            $payment = $request->getFirstModel();
+
+            $transaction = $this->prepareTransaction($request->getToken(), $payment->getOrder(), $payment);
+            $result = $this->apiClient->createTransaction($transaction);
+
+            throw new HttpRedirect($result->redirectUrl);
+        } catch (Throwable $e) {
+            throw CashBillException::createFromStatus($e->getMessage());
+        }
+
+    }
+
+    private function prepareTransaction(TokenInterface $token, OrderInterface $order, PaymentInterface $payment): TransactionRequest
+    {
         /** @var CustomerInterface $customer */
         $customer = $order->getCustomer();
 
@@ -127,33 +104,53 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             )
         );
 
-        $buyer = [
-            'email' => (string) $customer->getEmail(),
-            'firstName' => (string) $customer->getFirstName(),
-            'lastName' => (string) $customer->getLastName(),
-            'language' => $this->getFallbackLocaleCode($order->getLocaleCode()),
-        ];
-        $data['buyer'] = $buyer;
-        $data['products'] = $this->getOrderItems($order);
+        $notifyToken = $this->tokenFactory->createNotifyToken($token->getGatewayName(), $token->getDetails());
+        $amount = Amount::createFromInt($order->getTotal(), $order->getCurrencyCode());
 
-        return $data;
+        $data = [];
+        $data['continueUrl'] = $token->getTargetUrl();
+        $data['notifyUrl'] = $notifyToken->getTargetUrl();
+        $data['buyer'] = $customer->getUser();
+
+        $personalData = new PersonalData();
+        $personalData->email = (string) $customer->getEmail();
+        $personalData->firstName = (string) $customer->getFirstName();
+        $personalData->surname = (string) $customer->getLastName();
+        $personalData->ip = $order->getCustomerIp();
+
+        $title = $this->paymentDescriptionProvider->getPaymentDescription($payment);
+        $language = $this->getFallbackLocaleCode($order->getLocaleCode());
+
+        $transaction = new TransactionRequest(
+            $title,
+            $language,
+            $amount,
+            $personalData
+        );
+
+        $transaction->description = $this->getDescription($order);
+        $transaction->returnUrl = $notifyToken->getTargetUrl();
+        $transaction->negativeReturnUrl = $notifyToken->getTargetUrl();
+
+        return $transaction;
     }
 
-    private function getOrderItems(OrderInterface $order): array
+    private function getDescription(OrderInterface $order): string
     {
         $itemsData = [];
         $items = $order->getItems();
 
         /** @var OrderItemInterface $item */
-        foreach ($items as $key => $item) {
-            $itemsData[$key] = [
-                'name' => $item->getProductName(),
-                'unitPrice' => $item->getUnitPrice(),
-                'quantity' => $item->getQuantity(),
-            ];
+        foreach ($items as $item) {
+            $itemsData[] = sprintf(
+                "%s (%d) x %d",
+                $item->getProductName(),
+                Amount::calcTotal($item->getUnitPrice()),
+                $item->getQuantity()
+            );
         }
 
-        return $itemsData;
+        return implode(',', $itemsData);
     }
 
     private function getFallbackLocaleCode(string $localeCode): string

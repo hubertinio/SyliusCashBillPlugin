@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Model;
 
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
+
 final class Config implements ConfigInterface
 {
+    private string $apiHost;
+
     public function __construct(
         private string $appId,
         private string $appSecret,
-        private ?string $apiHost = 'https://pay.cashbill.pl/ws/rest'
+        private string $environment,
     ) {
+        $this->apiHost = match($this->environment) {
+            CashBillBridgeInterface::ENVIRONMENT_SANDBOX => 'https://pay.cashbill.pl/testws/rest/',
+            default => 'https://pay.cashbill.pl/ws/rest/',
+        };
     }
 
     public function isSandbox(): bool

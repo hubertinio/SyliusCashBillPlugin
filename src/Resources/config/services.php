@@ -13,6 +13,7 @@ use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Cli\DevCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\FetchPaymentChannelsCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\PingCommand;
+use Hubertinio\SyliusCashBillPlugin\Factory\ApiClientFactory;
 use Hubertinio\SyliusCashBillPlugin\Factory\ConfigFactory;
 use Hubertinio\SyliusCashBillPlugin\CashBillGatewayFactory;
 use Hubertinio\SyliusCashBillPlugin\Form\Type\CashBillGatewayConfigurationType;
@@ -24,43 +25,46 @@ use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $servicesIdPrefix  = 'hubertinio.cashbill.';
-    $parameters = $containerConfigurator->parameters();
-
-    $parameters->set('hubertinio_sylius_cash_bill.sandbox', 'https://pay.cashbill.pl/testws/rest/');
-    $parameters->set('hubertinio_sylius_cash_bill.production', 'https://pay.cashbill.pl/ws/rest/');
 
     $services = $containerConfigurator->services();
     $services->defaults()->public()->autowire()->autoconfigure();
 
-    $services->set($servicesIdPrefix . 'factory.config', ConfigFactory::class)
+    $services->set($servicesIdPrefix . 'config_factory', ConfigFactory::class)
         ->args([
-            [
-                CashBillBridgeInterface::ENVIRONMENT_SANDBOX => '%hubertinio_sylius_cash_bill.sandbox%',
-                CashBillBridgeInterface::ENVIRONMENT_PROD => '%hubertinio_sylius_cash_bill.production%',
-            ]
-        ])
-    ;
+            service('sylius.repository.gateway_config')
+        ]);
 
-    $services->set($servicesIdPrefix . 'config', Config::class)
-        ->factory(service($servicesIdPrefix . 'factory.config'))
-    ;
-
-//        ->arg('$appId', param('hubertinio_sylius_cash_bill.app_id'))
-//        ->arg('$appSecret', param('hubertinio_sylius_cash_bill.app_secret'))
-//        ->arg('$apiHost', param('hubertinio_sylius_cash_bill.api_host'));
-
-    $services->set($servicesIdPrefix . 'api.client', CashBillApiClient::class)
+    $services->set($servicesIdPrefix . 'api.client_factory', ApiClientFactory::class)
         ->args([
-            service($servicesIdPrefix . 'config'),
+            service($servicesIdPrefix . 'config_factory'),
             service('sylius.http_client'),
             service('sylius.http_message_factory'),
+            service('serializer'),
+            service('logger'),
+        ]);
+
+    $services->set($servicesIdPrefix . 'config', Config::class)
+        ->factory(service($servicesIdPrefix . 'config_factory'));
+
+    $services->set($servicesIdPrefix . 'api.client', CashBillApiClient::class)
+        ->factory(service($servicesIdPrefix . 'api.client_factory'))
+        ->tag('payum.api.cashbill_client', [
+            'factory' => CashBillBridgeInterface::NAME,
+            'alias' => 'payum.api.cashbill',
+        ])
+        ->args([
+//            service($servicesIdPrefix . 'config'),
+            service('sylius.http_client'),
+            service('sylius.http_message_factory'),
+            service('serializer'),
+            service('logger'),
         ]);
 
     $services->set($servicesIdPrefix . 'cli.ping', PingCommand::class)
         ->tag('console.command')
         ->args([
-        service($servicesIdPrefix . 'api.client'),
-    ]);
+            service($servicesIdPrefix . 'api.client'),
+        ]);
 
     $services->set($servicesIdPrefix . 'cli.dev', DevCommand::class)
         ->tag('console.command')
@@ -84,7 +88,10 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class);
 
-    $services->set($servicesIdPrefix . 'provider.payment_description_provider', PaymentDescriptionProvider::class);
+    $services->set($servicesIdPrefix . 'provider.payment_description_provider', PaymentDescriptionProvider::class)
+        ->args([
+            service('translator')
+        ]);
 
     $services->set($servicesIdPrefix . 'form.type.gateway_configuration', CashBillGatewayConfigurationType::class)
         ->tag('form.type')
@@ -99,6 +106,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'alias' => 'payum.action.capture'
         ])
         ->args([
+            service($servicesIdPrefix . 'api.client'),
             service($servicesIdPrefix . 'bridge'),
             service($servicesIdPrefix . 'provider.payment_description_provider'),
         ]);

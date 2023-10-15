@@ -6,3 +6,5 @@ hubertinio:
     gateway_label: CashBill
     app_id: API ID
     app_secret: API klucz
+    transaction:
+      title: 'Zamówienie #{number}'

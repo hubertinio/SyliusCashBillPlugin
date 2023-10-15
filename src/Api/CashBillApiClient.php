@@ -25,19 +25,25 @@ use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 
 /**
- * @see https://panel.cashbill.pl/dokumentacja_api_v2.php
+ * @see https://api.cashbill.pl/category/api/payment-gateway
  */
 class CashBillApiClient implements CashBillApiClientInterface
 {
     private const SIGN_ALGORITHM = 'sha1';
 
+    private ConfigInterface $config;
+
     public function __construct(
-        private ConfigInterface $config,
         private ClientInterface $client,
         private MessageFactory $messageFactory,
         private SerializerInterface $serializer,
         private LoggerInterface $logger,
     ) {
+    }
+
+    public function setConfig(ConfigInterface $config): void
+    {
+        $this->config = $config;
     }
 
     public function paymentChannels(): iterable
@@ -105,8 +111,7 @@ class CashBillApiClient implements CashBillApiClientInterface
 
     public function getTransactionSign(TransactionRequest $request): string
     {
-        $content = '';
-        $content .= $request->title;
+        $content = $request->title;
         $content .= $request->amount->value;
         $content .= $request->amount->currencyCode;
         $content .= $request->returnUrl;
@@ -130,13 +135,6 @@ class CashBillApiClient implements CashBillApiClientInterface
 //        $content .= $request->optionsKeyValueList;
         $content .= $this->config->getAppSecret();
 
-        $hash1 = hash(self::SIGN_ALGORITHM, $content);
-        $hash2 = sha1($content);
-
-        if ($hash1 !== $hash2) {
-            throw new \Exception("asfdasf asfsad fasd f");
-        }
-
-        return $hash2;
+        return hash(self::SIGN_ALGORITHM, $content);
     }
 }

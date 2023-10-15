@@ -18,7 +18,7 @@ use Sylius\Component\Core\Model\PaymentInterface;
 use Throwable;
 use Webmozart\Assert\Assert;
 
-final class NotifyAction implements ActionInterface, ApiAwareInterface
+final class NotifyAction implements ActionInterface
 {
     use GatewayAwareTrait;
 
@@ -26,19 +26,6 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface
         private CashBillBridgeInterface $bridge,
         private LoggerInterface $logger
     ){
-    }
-
-    public function setApi($api): void
-    {
-        if (false === is_array($api)) {
-            throw new UnsupportedApiException('Not supported. Expected to be set as array.');
-        }
-
-        $this->bridge->setAuthorizationData(
-            $api['environment'],
-            $api['oauth_client_id'],
-            $api['oauth_client_secret']
-        );
     }
 
     public function execute($request): void

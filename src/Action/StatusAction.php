@@ -18,19 +18,6 @@ final class StatusAction implements ActionInterface
     ){
     }
 
-    public function setApi($api): void
-    {
-        if (false === is_array($api)) {
-            throw new UnsupportedApiException('Not supported. Expected to be set as array.');
-        }
-
-        $this->bridge->setAuthorizationData(
-            $api['environment'],
-            $api['oauth_client_id'],
-            $api['oauth_client_secret']
-        );
-    }
-
     public function execute($request): void
     {
         /** @var $request GetStatusInterface */

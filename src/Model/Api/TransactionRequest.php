@@ -26,5 +26,6 @@ final class TransactionRequest
         public Amount $amount,
         public PersonalData $personalData
     ) {
+        $this->languageCode = mb_strtoupper($this->languageCode);
     }
 }
