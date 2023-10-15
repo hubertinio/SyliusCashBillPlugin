@@ -11,6 +11,7 @@ use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\GatewayAwareTrait;
+use Payum\Core\Model\Identity;
 use Payum\Core\Reply\HttpResponse;
 use Payum\Core\Request\Notify;
 use Psr\Log\LoggerInterface;
@@ -34,42 +35,52 @@ final class NotifyAction implements ActionInterface
         /** @var $request Notify */
         RequestNotSupportedException::assertSupports($this, $request);
 
-        /** @var PaymentInterface $payment */
-        $payment = $request->getFirstModel();
-        Assert::isInstanceOf($payment, PaymentInterface::class);
-
         /** @var PaymentSecurityToken $model */
         $model = $request->getModel();
+        Assert::nullOrIsInstanceOf($model, PaymentSecurityToken::class);
+
+        /** @var Identity $identity */
+        $identity = $model->getDetails();
+        Assert::nullOrIsInstanceOf($identity, Identity::class);
+
+        $this->logger->debug(__METHOD__, [
+            'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'],
+        ]);
 
         if ('POST' === $_SERVER['REQUEST_METHOD']) {
             $body = file_get_contents('php://input');
-            $data = trim($body);
+            $this->logger->debug(__METHOD__, ['body' => $body]);
+        }
 
-            try {
-                $result = $this->bridge->consumeNotification($data);
+        if ('GET' !== $_SERVER['REQUEST_METHOD']) {
+            throw new HttpResponse('Method not allowed', 500);
+        }
 
-                if (null !== $result) {
-                    $response = $result->getResponse();
+        try {
+            $result = $this->bridge->retrieve($data);
 
-                    if ($response->order->orderId) {
-                        $order = $this->bridge->retrieve($response->order->orderId);
+            if (null !== $result) {
+                $response = $result->getResponse();
 
-                        if (CashBillBridgeInterface::SUCCESS_API_STATUS === $order->getStatus()) {
-                            if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
-                                $status = $order->getResponse()->orders[0]->status;
-                                $model['statusCashBill'] = $status;
-                                $request->setModel($model);
-                            }
+                if ($response->order->orderId) {
+                    $order = $this->bridge->retrieve($response->order->orderId);
 
-                            throw new HttpResponse('SUCCESS');
+                    if (CashBillBridgeInterface::SUCCESS_API_STATUS === $order->getStatus()) {
+                        if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
+                            $status = $order->getResponse()->orders[0]->status;
+                            $model['statusCashBill'] = $status;
+                            $request->setModel($model);
                         }
+
+                        throw new HttpResponse('SUCCESS');
                     }
                 }
-            } catch (Throwable $e) {
-                $this->logger->critical($e->getMessage());
-                throw new HttpResponse($e->getMessage(), 500);
             }
+        } catch (Throwable $e) {
+            $this->logger->critical($e->getMessage());
+            throw new HttpResponse($e->getMessage(), 500);
         }
+
     }
 
     public function supports($request): bool

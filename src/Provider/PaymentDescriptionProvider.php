@@ -19,6 +19,6 @@ final class PaymentDescriptionProvider implements PaymentDescriptionProviderInte
     {
         $order = $payment->getOrder();
 
-        return $this->translator->trans('hubertinio.cashbill.transaction.title', ['number' => $order->getNumber()]);
+        return $this->translator->trans('hubertinio_sylius_cashbill_plugin.ui.transaction.title', ['number' => $order->getNumber()]);
     }
 }

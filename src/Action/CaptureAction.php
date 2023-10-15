@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hubertinio\SyliusCashBillPlugin\Action;
 
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Exception\CashBillException;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\PersonalData;
@@ -40,7 +41,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
 
     public function __construct(
         private CashBillApiClient $apiClient,
-        private RepositoryInterface $paymentRepository,
+        private CashBillBridgeInterface $bridge,
         private PaymentDescriptionProviderInterface $paymentDescriptionProvider,
     ) {
     }
@@ -72,20 +73,22 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
         try {
             /** @var Payment $model */
             $model = $request->getModel();
+            $details = $model->getDetails();
+
+            if (isset($details['cashBillUrl'])) {
+                header("Location: {$details['cashBillUrl']}");
+                exit;
+            }
 
             /** @var PaymentInterface $payment */
             $payment = $request->getFirstModel();
 
-            $transaction = $this->prepareTransaction($request->getToken(), $payment->getOrder(), $payment);
+            $token = $request->getToken();
+            $notifyToken = $this->tokenFactory->createNotifyToken($token->getGatewayName(), $token->getDetails());
+            $transaction = $this->prepareTransaction($notifyToken, $payment->getOrder(), $payment);
             $result = $this->apiClient->createTransaction($transaction);
 
-            $details = $model->getDetails();
-            $details['cashBillUrl'] = $result->redirectUrl;
-            $details['cashBillId'] = $result->id;
-            $details['cashBillSign'] = $transaction->sign;
-
-            $model->setDetails($details);
-            $this->paymentRepository->add($model);
+            $this->bridge->capture($model, $transaction, $result);
 
             header("Location: {$result->redirectUrl}");
             exit;
@@ -94,7 +97,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
         }
     }
 
-    private function prepareTransaction(TokenInterface $token, OrderInterface $order, PaymentInterface $payment): TransactionRequest
+    private function prepareTransaction(TokenInterface $notifyToken, OrderInterface $order, PaymentInterface $payment): TransactionRequest
     {
         /** @var CustomerInterface $customer */
         $customer = $order->getCustomer();
@@ -108,7 +111,6 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             )
         );
 
-        $notifyToken = $this->tokenFactory->createNotifyToken($token->getGatewayName(), $token->getDetails());
         $amount = Amount::createFromInt($order->getTotal(), $order->getCurrencyCode());
 
         $personalData = new PersonalData();

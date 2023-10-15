@@ -10,7 +10,6 @@ use Symfony\Component\Config\FileLocator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 use Symfony\Component\DependencyInjection\Loader\PhpFileLoader;
-use Symfony\Component\Translation\Loader\YamlFileLoader;
 
 final class HubertinioSyliusCashBillExtension extends AbstractResourceExtension implements PrependExtensionInterface
 {

@@ -7,6 +7,7 @@ namespace Hubertinio\SyliusCashBillPlugin\Cli;
 use Faker\Factory;
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\PersonalData;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
@@ -28,11 +29,26 @@ final class DevCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $this->createTransaction($input, $output);
+        $this->transactionDetails($input, $output);
+//        $this->createTransaction($input, $output);
 
         return Command::SUCCESS;
     }
 
+    /**
+     * @see https://api.cashbill.pl/api/payment-gateway/requesting-details-of-transaction
+     */
+    public function transactionDetails(InputInterface $input, OutputInterface $output): void
+    {
+        $request = new DetailsRequest("TEST_mbabsr6");
+        $response = $this->apiClient->transactionDetails($request);
+
+        $output->writeln(json_encode($response));
+    }
+
+    /**
+     * @see https://api.cashbill.pl/api/payment-gateway/creating-new-transaction
+     */
     public function createTransaction(InputInterface $input, OutputInterface $output): void
     {
         $faker = Factory::create('pl_PL');

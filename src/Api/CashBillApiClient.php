@@ -4,26 +4,20 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Api;
 
-use http\Client;
+use GuzzleHttp\ClientInterface;
+use GuzzleHttp\Exception\GuzzleException;
 use Http\Message\MessageFactory;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
-use Hubertinio\SyliusCashBillPlugin\Model\ConfigInterface;
-use Psr\Log\LoggerInterface;
-use Sylius\Bundle\CoreBundle\SyliusCoreBundle;
-use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\Serializer\Serializer;
-use Symfony\Component\Serializer\SerializerInterface;
-use Webmozart\Assert\Assert;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Channel;
-use GuzzleHttp\ClientInterface;
-use Psr\Http\Message\RequestInterface;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsRequest;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsResponse;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
-use Symfony\Component\Serializer\Encoder\JsonEncoder;
+use Symfony\Component\Serializer\SerializerInterface;
+use Webmozart\Assert\Assert;
 
 /**
  * @see https://api.cashbill.pl/category/api/payment-gateway
@@ -48,7 +42,7 @@ class CashBillApiClient implements CashBillApiClientInterface
 
     private function setEnv(string $environment): void
     {
-        $this->apiHost = match($this->environment) {
+        $this->apiHost = match($environment) {
             CashBillBridgeInterface::ENVIRONMENT_SANDBOX => 'https://pay.cashbill.pl/testws/rest/',
             default => 'https://pay.cashbill.pl/ws/rest/',
         };
@@ -98,6 +92,31 @@ class CashBillApiClient implements CashBillApiClientInterface
         return $channels;
     }
 
+    public function transactionDetails(DetailsRequest $request): DetailsResponse
+    {
+        $request->sign = $this->getDetailsSign($request);
+
+        $request = $this->messageFactory->createRequest(
+            Request::METHOD_GET,
+            $this->getApiHost() . 'payment/' . $this->getAppId() . '/' . $request->orderId . '?sign=' . $request->sign,
+            ['Content-Type' => 'application/json'],
+        );
+
+        try {
+            $response = $this->client->send($request, ['verify' => true]);
+        } catch (GuzzleException $e) {
+            $this->logger->critical($e->getMessage());
+
+            throw $e;
+        }
+
+        return $this->serializer->deserialize(
+            $response->getBody()->getContents(),
+            DetailsResponse::class,
+            'json'
+        );
+    }
+
     public function createTransaction(TransactionRequest $request): TransactionResponse
     {
         $request->sign = $this->getTransactionSign($request);
@@ -128,7 +147,15 @@ class CashBillApiClient implements CashBillApiClientInterface
         );
     }
 
-    public function getTransactionSign(TransactionRequest $request): string
+    private function getDetailsSign(DetailsRequest $request): string
+    {
+        $content = $request->orderId;
+        $content .= $this->getAppSecret();
+
+        return hash(self::SIGN_ALGORITHM, $content);
+    }
+
+    private function getTransactionSign(TransactionRequest $request): string
     {
         $content = $request->title;
         $content .= $request->amount->value;

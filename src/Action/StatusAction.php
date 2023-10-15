@@ -23,6 +23,11 @@ final class StatusAction implements ActionInterface
         /** @var $request GetStatusInterface */
         RequestNotSupportedException::assertSupports($this, $request);
 
+        if ('POST' === $_SERVER['REQUEST_METHOD']) {
+            $body = file_get_contents('php://input');
+            $this->logger->debug(__METHOD__, ['body' => $body]);
+        }
+
         $model = ArrayObject::ensureArrayObject($request->getModel());
         $status = $model['statusCashBill'] ?? null;
         $orderId = $model['orderId'] ?? null;

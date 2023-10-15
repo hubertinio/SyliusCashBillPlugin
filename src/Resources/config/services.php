@@ -70,7 +70,10 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             CashBillGatewayFactory::class
         ]);
 
-    $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class);
+    $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class)
+        ->args([
+            service('sylius.repository.payment_method'),
+        ]);
 
     $services->set($servicesIdPrefix . 'provider.payment_description_provider', PaymentDescriptionProvider::class)
         ->args([
@@ -91,7 +94,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ])
         ->args([
             service($servicesIdPrefix . 'api.client'),
-            service('sylius.repository.payment_method'),
+            service($servicesIdPrefix . 'bridge'),
             service($servicesIdPrefix . 'provider.payment_description_provider'),
         ]);
 
