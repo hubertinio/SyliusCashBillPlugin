@@ -17,10 +17,10 @@ final class DetailsResponse
     public string $status;
 
     public string $additionalData;
-//
-//    public Amount $amount;
-//
-//    public Amount $requestedAmount;
-//
-//    public PersonalData $personalData;
+
+    public Amount $amount;
+
+    public Amount $requestedAmount;
+
+    public PersonalData $personalData;
 }

@@ -13,6 +13,7 @@ use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\CashBillGatewayFactory;
 use Hubertinio\SyliusCashBillPlugin\Cli\DevCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\FetchPaymentChannelsCommand;
+use Hubertinio\SyliusCashBillPlugin\Cli\FetchTransactionDetailsCommand;
 use Hubertinio\SyliusCashBillPlugin\Cli\PingCommand;
 use Hubertinio\SyliusCashBillPlugin\Factory\ApiClientFactory;
 use Hubertinio\SyliusCashBillPlugin\Form\Type\CashBillGatewayConfigurationType;
@@ -59,6 +60,12 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->alias(CashBillApiClientInterface::class, $servicesIdPrefix . 'api.client');
 
     $services->set($servicesIdPrefix . 'cli.fetch_channels', FetchPaymentChannelsCommand::class)
+        ->tag('console.command')
+        ->args([
+            service($servicesIdPrefix . 'api.client'),
+    ]);
+
+    $services->set($servicesIdPrefix . 'cli.fetch_transaction_details', FetchTransactionDetailsCommand::class)
         ->tag('console.command')
         ->args([
             service($servicesIdPrefix . 'api.client'),

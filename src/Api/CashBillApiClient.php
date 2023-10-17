@@ -92,6 +92,9 @@ class CashBillApiClient implements CashBillApiClientInterface
         return $channels;
     }
 
+    /**
+     * @see https://api.cashbill.pl/api/payment-gateway/requesting-details-of-transaction
+     */
     public function transactionDetails(DetailsRequest $request): DetailsResponse
     {
         $request->sign = $this->getDetailsSign($request);
@@ -113,10 +116,14 @@ class CashBillApiClient implements CashBillApiClientInterface
         return $this->serializer->deserialize(
             $response->getBody()->getContents(),
             DetailsResponse::class,
-            'json'
+            'json',
+            [AbstractObjectNormalizer::DISABLE_TYPE_ENFORCEMENT => true]
         );
     }
 
+    /**
+     * @see https://api.cashbill.pl/api/payment-gateway/creating-new-transaction
+     */
     public function createTransaction(TransactionRequest $request): TransactionResponse
     {
         $request->sign = $this->getTransactionSign($request);
