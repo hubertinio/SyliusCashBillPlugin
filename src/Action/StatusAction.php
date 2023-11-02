@@ -4,17 +4,19 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Action;
 
+use ArrayAccess;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
-use Payum\Core\Exception\UnsupportedApiException;
 use Payum\Core\Request\GetStatusInterface;
+use Psr\Log\LoggerInterface;
 
 final class StatusAction implements ActionInterface
 {
     public function __construct(
-        private CashBillBridgeInterface $bridge
+        private CashBillBridgeInterface $bridge,
+        private LoggerInterface $logger
     ){
     }
 
@@ -29,7 +31,7 @@ final class StatusAction implements ActionInterface
         }
 
         $model = ArrayObject::ensureArrayObject($request->getModel());
-        $status = $model['statusCashBill'] ?? null;
+        $status = $model['status'] ?? null;
         $orderId = $model['orderId'] ?? null;
 
         if (null === $status || null !== $orderId) {
@@ -52,6 +54,16 @@ final class StatusAction implements ActionInterface
 
     public function supports($request): bool
     {
-        return ($request instanceof GetStatusInterface) && ($request->getModel() instanceof ArrayAccess);
+        $model = $request->getModel();
+
+        $this->logger->debug(__METHOD__, [
+            'request_class' => get_class($request),
+            'request_interfaces' => json_encode(class_implements($request)),
+            'model_class' => get_class($model),
+            'model_interfaces' => json_encode(class_implements($model)),
+            'model' => json_encode($model),
+        ]);
+
+        return ($request instanceof GetStatusInterface) && ($model instanceof ArrayAccess);
     }
 }

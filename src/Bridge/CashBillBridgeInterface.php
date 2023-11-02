@@ -2,8 +2,10 @@
 
 namespace Hubertinio\SyliusCashBillPlugin\Bridge;
 
+use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsResponse;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
+use Payum\Core\Request\Notify;
 use Sylius\Component\Core\Model\Payment;
 
 interface CashBillBridgeInterface
@@ -27,7 +29,9 @@ interface CashBillBridgeInterface
 
     public function capture(Payment $model, TransactionRequest $request, TransactionResponse $response): void;
 
-    public function retrieve(string $orderId): TransactionResponse;
+    public function checkNotification(Notify $notify): Payment;
 
-    public function consumeNotification($data): ?TransactionResponse;
+    public function verifyDetails(Payment $payment, DetailsResponse $details): void;
+
+    public function handleDetails(Payment $payment, DetailsResponse $details): void;
 }

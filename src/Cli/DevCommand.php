@@ -53,7 +53,7 @@ final class DevCommand extends Command
     {
         $faker = Factory::create('pl_PL');
 
-        $amount = Amount::createFromInt(
+        $amount = Amount::createFromCent(
             $faker->randomNumber(5, true),
             $faker->randomElement(['PLN', 'USD', 'EUR']),
         );

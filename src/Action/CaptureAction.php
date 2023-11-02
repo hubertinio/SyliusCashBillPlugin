@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Hubertinio\SyliusCashBillPlugin\Action;
 
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
+use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 use Hubertinio\SyliusCashBillPlugin\Exception\CashBillException;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
@@ -40,7 +41,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
     private ?GenericTokenFactoryInterface $tokenFactory;
 
     public function __construct(
-        private CashBillApiClient $apiClient,
+        private CashBillApiClientInterface $apiClient,
         private CashBillBridgeInterface $bridge,
         private PaymentDescriptionProviderInterface $paymentDescriptionProvider,
     ) {
@@ -111,7 +112,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             )
         );
 
-        $amount = Amount::createFromInt($order->getTotal(), $order->getCurrencyCode());
+        $amount = Amount::createFromCent($order->getTotal(), $order->getCurrencyCode());
 
         $personalData = new PersonalData();
         $personalData->email = (string) $customer->getEmail();
@@ -146,7 +147,7 @@ final class CaptureAction implements ActionInterface, ApiAwareInterface, Generic
             $itemsData[] = sprintf(
                 "%s (%d) x %d",
                 $item->getProductName(),
-                Amount::calcTotal($item->getUnitPrice()),
+                Amount::convertToDecimal($item->getUnitPrice()),
                 $item->getQuantity()
             );
         }

@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace Hubertinio\SyliusCashBillPlugin\Action;
 
 use ArrayObject;
+use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClient;
+use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsRequest;
 use Payum\Core\Action\ActionInterface;
 use Payum\Core\ApiAwareInterface;
 use Payum\Core\Exception\RequestNotSupportedException;
 use Payum\Core\Exception\UnsupportedApiException;
+use Payum\Core\GatewayAwareInterface;
 use Payum\Core\GatewayAwareTrait;
 use Payum\Core\Model\Identity;
 use Payum\Core\Reply\HttpResponse;
@@ -17,31 +21,40 @@ use Payum\Core\Request\Notify;
 use Psr\Log\LoggerInterface;
 use Sylius\Bundle\PayumBundle\Model\PaymentSecurityToken;
 use Sylius\Component\Core\Model\PaymentInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Routing\Exception\MethodNotAllowedException;
 use Throwable;
 use Webmozart\Assert\Assert;
 
-final class NotifyAction implements ActionInterface
+final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
 {
     use GatewayAwareTrait;
 
     public function __construct(
+        private CashBillApiClientInterface $apiClient,
         private CashBillBridgeInterface $bridge,
         private LoggerInterface $logger
     ){
     }
 
+    public function setApi($api): void
+    {
+        try {
+            Assert::isArray($api);
+            $this->apiClient->setConfig($api);
+        } catch (\InvalidArgumentException) {
+            throw new UnsupportedApiException('Not supported. Expected to be set as array.');
+        }
+    }
+
     public function execute($request): void
     {
-        /** @var $request Notify */
+        /** @var Notify $request */
         RequestNotSupportedException::assertSupports($this, $request);
 
         /** @var PaymentSecurityToken $model */
         $model = $request->getModel();
-        Assert::nullOrIsInstanceOf($model, PaymentSecurityToken::class);
-
-        /** @var Identity $identity */
-        $identity = $model->getDetails();
-        Assert::nullOrIsInstanceOf($identity, Identity::class);
+        Assert::isInstanceOf($model, PaymentSecurityToken::class);
 
         $this->logger->debug(__METHOD__, [
             'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'],
@@ -53,34 +66,27 @@ final class NotifyAction implements ActionInterface
         }
 
         if ('GET' !== $_SERVER['REQUEST_METHOD']) {
-            throw new HttpResponse('Method not allowed', 500);
+            throw new MethodNotAllowedException(
+                [Request::METHOD_GET],
+                'Method not allowed',
+                500
+            );
         }
 
         try {
-            $result = $this->bridge->retrieve($data);
+            $payment = $this->bridge->checkNotification($request);
 
-            if (null !== $result) {
-                $response = $result->getResponse();
+            $detailsRequest = new DetailsRequest($payment->getDetails()['cashBillId']);
+            $detailsResponse = $this->apiClient->transactionDetails($detailsRequest);
 
-                if ($response->order->orderId) {
-                    $order = $this->bridge->retrieve($response->order->orderId);
+            $this->bridge->verifyDetails($payment, $detailsResponse);
+            $this->bridge->handleDetails($payment, $detailsResponse);
 
-                    if (CashBillBridgeInterface::SUCCESS_API_STATUS === $order->getStatus()) {
-                        if (PaymentInterface::STATE_COMPLETED !== $payment->getState()) {
-                            $status = $order->getResponse()->orders[0]->status;
-                            $model['statusCashBill'] = $status;
-                            $request->setModel($model);
-                        }
-
-                        throw new HttpResponse('SUCCESS');
-                    }
-                }
-            }
+            throw new HttpResponse('OK');
         } catch (Throwable $e) {
             $this->logger->critical($e->getMessage());
-            throw new HttpResponse($e->getMessage(), 500);
+            throw new HttpResponse('ERROR', 500);
         }
-
     }
 
     public function supports($request): bool

@@ -105,6 +105,17 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             service($servicesIdPrefix . 'provider.payment_description_provider'),
         ]);
 
+    $services->set($servicesIdPrefix . 'action.notify', NotifyAction::class)
+        ->tag('payum.action', [
+            'factory' => CashBillBridgeInterface::NAME,
+            'alias' => 'payum.action.notify'
+        ])
+        ->args([
+            service($servicesIdPrefix . 'api.client'),
+            service($servicesIdPrefix . 'bridge'),
+            service('logger'),
+        ]);
+
     $services->set($servicesIdPrefix . 'action.convert_payment', ConvertPaymentAction::class)
         ->tag('payum.action', [
             'factory' => CashBillBridgeInterface::NAME,
@@ -115,22 +126,13 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             service($servicesIdPrefix . 'provider.payment_description_provider'),
         ]);
 
-    $services->set($servicesIdPrefix . 'action.notify', NotifyAction::class)
-        ->tag('payum.action', [
-            'factory' => CashBillBridgeInterface::NAME,
-            'alias' => 'payum.action.notify'
-        ])
-        ->args([
-            service($servicesIdPrefix . 'bridge'),
-            service('logger'),
-        ]);
-
     $services->set($servicesIdPrefix . 'action.status', StatusAction::class)
         ->tag('payum.action', [
             'factory' => CashBillBridgeInterface::NAME,
             'alias' => 'payum.action.status'
         ])
         ->args([
+            service($servicesIdPrefix . 'api.client'),
             service($servicesIdPrefix . 'bridge'),
         ]);
 };

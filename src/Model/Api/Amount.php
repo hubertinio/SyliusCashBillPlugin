@@ -13,12 +13,17 @@ final class Amount
         $this->currencyCode = mb_strtoupper($this->currencyCode);
     }
 
-    public static function createFromInt(int $total, string $currencyCode): self
+    public function getValueAsCent(): float
     {
-        return new self(self::calcTotal($total), $currencyCode);
+        return 100 * $this->value;
     }
 
-    public static function calcTotal(int $total): string
+    public static function createFromCent(int $total, string $currencyCode): self
+    {
+        return new self(self::convertToDecimal($total), $currencyCode);
+    }
+
+    public static function convertToDecimal(int $total): string
     {
         return sprintf('%0.2f', $total / 100);
     }

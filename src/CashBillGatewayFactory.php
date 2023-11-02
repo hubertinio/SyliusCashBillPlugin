@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Hubertinio\SyliusCashBillPlugin;
 
 use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
-use Hubertinio\SyliusCashBillPlugin\Model\Config;
 use Payum\Core\Bridge\Spl\ArrayObject;
 use Payum\Core\GatewayFactory;
 

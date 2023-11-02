@@ -19,9 +19,6 @@ use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\SerializerInterface;
 use Webmozart\Assert\Assert;
 
-/**
- * @see https://api.cashbill.pl/category/api/payment-gateway
- */
 class CashBillApiClient implements CashBillApiClientInterface
 {
     private const SIGN_ALGORITHM = 'sha1';
@@ -80,21 +77,11 @@ class CashBillApiClient implements CashBillApiClientInterface
 
         foreach ($data as $item) {
             $channels[] = Channel::createFromArray($item);
-
-//            if ($this->isSandbox()) {
-//                $item['id'] = 2;
-//                $item['name'] = 'Name 2';
-//                $item['description'] = 'Description 2';
-//                $channels[] = Channel::createFromArray($item);
-//            }
         }
 
         return $channels;
     }
 
-    /**
-     * @see https://api.cashbill.pl/api/payment-gateway/requesting-details-of-transaction
-     */
     public function transactionDetails(DetailsRequest $request): DetailsResponse
     {
         $request->sign = $this->getDetailsSign($request);
@@ -121,9 +108,6 @@ class CashBillApiClient implements CashBillApiClientInterface
         );
     }
 
-    /**
-     * @see https://api.cashbill.pl/api/payment-gateway/creating-new-transaction
-     */
     public function createTransaction(TransactionRequest $request): TransactionResponse
     {
         $request->sign = $this->getTransactionSign($request);

@@ -16,7 +16,7 @@ final class PingCommand extends Command
 
             protected static $defaultDescription = 'Check your API credentials';
 
-    private CashBillApiClient $apiClient;
+    private CashBillApiClientInterface $apiClient;
 
     public function __construct(CashBillApiClient $apiClient)
     {
