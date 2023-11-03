@@ -5,5 +5,3 @@ sylius_ui:
                 scripts:
                     template: "@HubertinioSyliusCashBillPlugin/_checkout.html.twig"
                     priority: 10
-#                    context:
-#                        - "checkout"

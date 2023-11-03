@@ -9,3 +9,12 @@
 <p align="center">
     <a href="https://www.cashbill.pl/">CashBill</a>
 </p>
+
+
+## Installation
+
+Add this line to `config/packages/_sylius.yml`
+
+```
+- { resource: "@HubertinioSyliusCashBillPlugin/Resources/config/config.yml" }
+```
