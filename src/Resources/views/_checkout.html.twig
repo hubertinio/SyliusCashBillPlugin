@@ -1,19 +1,19 @@
 <script>
     window.addEventListener('load', function(event) {
-        alert('cashbill');
         const input = document.querySelector('form[name="sylius_checkout_select_payment"] input[value="cashbill"]');
 
         if (input) {
             const label = document.querySelector('label[for="' + input.id + '"]');
 
             if (label) {
-                const wrapper = document.createElement('div');
                 const image = document.createElement('img');
                 image.src = '/bundles/hubertiniosyliuscashbillplugin/services.svg';
                 image.alt = 'CashBill';
                 image.width = 600;
 
+                const wrapper = document.createElement('div');
                 wrapper.append(image);
+
                 label.append(wrapper);
             }
         }
