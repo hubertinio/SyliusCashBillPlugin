@@ -38,7 +38,7 @@ final class CashBillGatewayFactory extends GatewayFactory
         }
 
 //        $config['payum.paths'] = array_replace([
-//            'PayumStripe' => __DIR__.'/Resources/views',
+//            'CashBill' => __DIR__.'/Resources/views',
 //        ], $config['payum.paths'] ?: []);
     }
 }
