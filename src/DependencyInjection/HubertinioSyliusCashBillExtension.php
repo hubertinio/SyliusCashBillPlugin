@@ -27,7 +27,7 @@ final class HubertinioSyliusCashBillExtension extends AbstractResourceExtension 
 
     public function prepend(ContainerBuilder $container): void
     {
-        $this->prependDoctrineMigrations($container);
+//        $this->prependDoctrineMigrations($container);
     }
 
     protected function getMigrationsNamespace(): string
