@@ -132,7 +132,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'alias' => 'payum.action.status'
         ])
         ->args([
-            service($servicesIdPrefix . 'api.client'),
             service($servicesIdPrefix . 'bridge'),
+            service('logger'),
         ]);
 };
