@@ -19,6 +19,7 @@ final class CashBillBridge implements CashBillBridgeInterface
 {
     public function __construct(
         private RepositoryInterface $paymentRepository,
+        private \SM\Factory\Factory $smFactory,
     ) {
     }
 
@@ -35,7 +36,7 @@ final class CashBillBridge implements CashBillBridgeInterface
     }
 
     /**
-     * sprawdzić czy płątnosć istnieje w bazie i porównać hash
+     * Check payment exists
      */
     public function checkNotification(Notify $notify): Payment
     {
@@ -46,8 +47,10 @@ final class CashBillBridge implements CashBillBridgeInterface
         $identity = $token->getDetails();
         Assert::nullOrIsInstanceOf($identity, Identity::class);
 
+        $identityId = $identity->getId();
+
         /** @var Payment $payment */
-        $payment = $this->paymentRepository->findOneBy(['id' => $identity->getId()]);
+        $payment = $this->paymentRepository->find($identityId);
         Assert::isInstanceOf($payment, Payment::class);
 
         $this->verifyToken($payment, $token);
@@ -57,12 +60,24 @@ final class CashBillBridge implements CashBillBridgeInterface
 
     public function verifyDetails(Payment $payment, DetailsResponse $details): void
     {
-        $this;
+        Assert::eq($payment->getDetails()['cashBillId'], $details->id);
     }
 
     public function handleDetails(Payment $payment, DetailsResponse $details): void
     {
-        $this;
+        if (CashBillBridgeInterface::COMPLETED_PAYMENT_STATUS === $details->status) {
+            /**
+             * @TODO transformation
+             */
+
+            $stateMachineFactory = $this->container->get('sm.factory');
+
+            $stateMachine = $stateMachineFactory->get($order, OrderPaymentTransitions::GRAPH);
+            $stateMachine->apply(OrderPaymentTransitions::TRANSITION_REQUEST_PAYMENT);
+            $stateMachine->apply(OrderPaymentTransitions::TRANSITION_PAY);
+
+            $this->container->get('sylius.manager.order')->flush();
+        }
     }
 
     public function verifyToken(Payment $payment, PaymentSecurityToken $token): void
@@ -71,7 +86,5 @@ final class CashBillBridge implements CashBillBridgeInterface
         Assert::keyExists($paymentDetails, 'cashBillId');
         Assert::keyExists($paymentDetails, 'cashBillSign');
         Assert::keyExists($paymentDetails, 'cashBillUrl');
-        Assert::keyExists($paymentDetails, 'cashBillTokenHash');
-        Assert::eq($paymentDetails['cashBillTokenHash'], $token->getHash());
     }
 }

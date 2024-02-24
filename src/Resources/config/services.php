@@ -21,12 +21,18 @@ use Hubertinio\SyliusCashBillPlugin\Provider\PaymentDescriptionProvider;
 use Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use Hubertinio\SyliusCashBillPlugin\Controller\StatusChangeNotificationController;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $servicesIdPrefix  = 'hubertinio_sylius_cashbill_plugin.';
 
     $services = $containerConfigurator->services();
     $services->defaults()->public()->autowire()->autoconfigure();
+
+    $services->set($servicesIdPrefix  . 'status_change_notification.controller', StatusChangeNotificationController::class)
+        ->args([
+            service('logger'),
+        ]);
 
     $services->set($servicesIdPrefix . 'api.client_factory', ApiClientFactory::class)
         ->args([
@@ -79,7 +85,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class)
         ->args([
-            service('sylius.repository.payment_method'),
+            service('sylius.repository.payment'),
         ]);
 
     $services->set($servicesIdPrefix . 'provider.payment_description_provider', PaymentDescriptionProvider::class)

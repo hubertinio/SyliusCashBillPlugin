@@ -169,7 +169,6 @@ class CashBillApiClient implements CashBillApiClientInterface
         $content .= $request->personalData->flat;
         $content .= $request->personalData->ip;
 
-//        $content .= $request->optionsKeyValueList;
         $content .= $this->getAppSecret();
 
         return hash(self::SIGN_ALGORITHM, $content);

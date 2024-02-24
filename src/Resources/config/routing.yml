@@ -1,0 +1,5 @@
+hubertinio_sylius_cashbill_shop_status_change_notification:
+    path: /payments/cashbill/notify
+    methods: [ GET, POST ]
+    defaults:
+        _controller: hubertinio_sylius_cashbill_plugin.status_change_notification.controller::index

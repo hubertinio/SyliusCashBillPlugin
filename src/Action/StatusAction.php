@@ -22,6 +22,17 @@ final class StatusAction implements ActionInterface
 
     public function execute($request): void
     {
+        $model = $request->getModel();
+
+        $this->logger->debug(__METHOD__, [
+            'request_class' => is_object($request) ? get_class($request) : null,
+            'request_interfaces' => json_encode(class_implements($request)),
+            'request' => json_encode($request),
+            'model_class' => is_object($model) ? get_class($model) : null,
+            'model_interfaces' => json_encode(class_implements($model)),
+            'model' => json_encode($model),
+        ]);
+
         /** @var $request GetStatusInterface */
         RequestNotSupportedException::assertSupports($this, $request);
 
@@ -54,16 +65,6 @@ final class StatusAction implements ActionInterface
 
     public function supports($request): bool
     {
-        $model = $request->getModel();
-
-        $this->logger->debug(__METHOD__, [
-            'request_class' => get_class($request),
-            'request_interfaces' => json_encode(class_implements($request)),
-            'model_class' => get_class($model),
-            'model_interfaces' => json_encode(class_implements($model)),
-            'model' => json_encode($model),
-        ]);
-
         return ($request instanceof GetStatusInterface) && ($model instanceof ArrayAccess);
     }
 }
