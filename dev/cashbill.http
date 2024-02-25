@@ -1,2 +1,2 @@
-GET {{ host }}/payments/cashbill/notify?args=TEST_asmud9f4&sign=b02be18adc5c16b2fec50bc64a16a2d2478f07f9&cmd=transactionStatusChanged
+GET {{ host }}/payments/cashbill/notify?cmd=transactionStatusChanged&args=TEST_asmuda9p&sign=8caf3de408a0192a9f0de1039dc29e64a0606c44
 User-Agent: CashBill

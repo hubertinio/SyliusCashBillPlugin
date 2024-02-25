@@ -138,14 +138,4 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             service($servicesIdPrefix . 'bridge'),
             service($servicesIdPrefix . 'provider.payment_description_provider'),
         ]);
-
-    $services->set($servicesIdPrefix . 'action.status', StatusAction::class)
-        ->tag('payum.action', [
-            'factory' => CashBillBridgeInterface::NAME,
-            'alias' => 'payum.action.status'
-        ])
-        ->args([
-            service($servicesIdPrefix . 'bridge'),
-            service('logger'),
-        ]);
 };

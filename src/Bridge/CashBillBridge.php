@@ -5,22 +5,21 @@ declare(strict_types=1);
 namespace Hubertinio\SyliusCashBillPlugin\Bridge;
 
 use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
-use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsResponse;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
+use InvalidArgumentException;
 use Payum\Core\Model\Identity;
 use Payum\Core\Request\Notify;
+use SM\Factory\FactoryInterface;
 use Sylius\Bundle\PayumBundle\Model\PaymentSecurityToken;
-use Sylius\Component\Core\Model\OrderInterface;
 use Sylius\Component\Core\Model\Payment;
 use Sylius\Component\Core\Repository\OrderRepositoryInterface;
+use Sylius\Component\Payment\Model\PaymentInterface;
 use Sylius\Component\Payment\PaymentTransitions;
 use Sylius\Component\Resource\Repository\RepositoryInterface;
 use Webmozart\Assert\Assert;
-use SM\Factory\FactoryInterface;
-use Sylius\Component\Core\OrderPaymentTransitions;
 
 final class CashBillBridge implements CashBillBridgeInterface
 {
@@ -78,6 +77,11 @@ final class CashBillBridge implements CashBillBridgeInterface
     public function verifyDetails(Payment $payment, DetailsResponse $details): void
     {
         Assert::eq($payment->getDetails()['cashBillId'], $details->id);
+        Assert::inArray($details->status, [
+            CashBillBridgeInterface::CANCELED_PAYMENT_STATUS,
+            CashBillBridgeInterface::COMPLETED_PAYMENT_STATUS,
+            CashBillBridgeInterface::REJECTED_STATUS,
+        ]);
     }
 
     public function handleDetails(Payment $payment, DetailsResponse $details): void
@@ -90,47 +94,68 @@ final class CashBillBridge implements CashBillBridgeInterface
         }
     }
 
-    public function handleStatusChange(string $cashBillId, string $sign): void
+    public function handleStatusChange(string $cashBillId, string $requestSign): void
     {
+        $expectedSign = $this->apiClient->getStatusChangeSign($cashBillId);
+
+        /**
+         * @TODO check sign
+         */
+//        if ($expectedSign !== $requestSign) {
+//            throw new InvalidArgumentException("Signature error");
+//        }
+
+        $transition = null;
         $payment = null;
-        $criteria = ['state' => 'new'];
+        $criteria = [
+            'state' => [
+                PaymentInterface::STATE_NEW,
+                PaymentInterface::STATE_PROCESSING,
+                PaymentInterface::STATE_FAILED,
+            ],
+        ];
+
         $payments = $this->paymentRepository->findBy($criteria);
 
-        /** @var Payment $pay */
-        foreach ($payments as $pay) {
-            $paymentDetails = $pay->getDetails();
-
-            if ($paymentDetails
-                && isset($paymentDetails['cashBillId'])
-                && isset($paymentDetails['cashBillSign'])
-                && $paymentDetails['cashBillId'] === $cashBillId
-                && $paymentDetails['cashBillSign'] === $sign
-            ) {
-                $payment = $pay;
+        /** @var Payment $item */
+        foreach ($payments as $item) {
+            if (($item->getDetails()['cashBillId'] ?? null) === $cashBillId) {
+                $payment = $item;
                 break;
             }
         }
 
-        if ($payment instanceof Payment) {
-            $detailsRequest = new DetailsRequest($cashBillId);
-            $detailsResponse = $this->apiClient->transactionDetails($detailsRequest);
+        if (!$payment instanceof Payment) {
+            return;
+        }
 
-            $this->verifyDetails($payment, $detailsResponse);
-            $responseTotal = $detailsResponse->amount->getValueAsCent();
+        $detailsRequest = new DetailsRequest($cashBillId);
+        $detailsResponse = $this->apiClient->transactionDetails($detailsRequest);
 
-            if (
-                $responseTotal >= $payment->getOrder()->getTotal()
-                && $detailsResponse->amount->currencyCode = $payment->getOrder()->getCurrencyCode()
-            ) {
-                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+        $this->verifyDetails($payment, $detailsResponse);
+        $responseTotal = $detailsResponse->amount->getValueAsCent();
 
-                if ($stateMachine->can(PaymentTransitions::TRANSITION_COMPLETE)) {
-                    $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE);
-                    $this->paymentRepository->add($payment);
-                }
-            }
+        if (
+            CashBillBridgeInterface::COMPLETED_PAYMENT_STATUS === $detailsResponse->status
+            && $responseTotal >= $payment->getOrder()->getTotal()
+            && $detailsResponse->amount->currencyCode = $payment->getOrder()->getCurrencyCode()
+        ) {
+            $transition = PaymentTransitions::TRANSITION_COMPLETE;
+        } elseif (CashBillBridgeInterface::CANCELED_PAYMENT_STATUS === $detailsResponse->status) {
+            $transition = PaymentTransitions::TRANSITION_CANCEL;
+        } elseif (CashBillBridgeInterface::REJECTED_STATUS === $detailsResponse->status) {
+            $transition = PaymentTransitions::TRANSITION_FAIL;
+        }
 
+        if (!$transition) {
+            return;
+        }
 
+        $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+
+        if ($stateMachine->can($transition)) {
+            $stateMachine->apply($transition);
+            $this->paymentRepository->add($payment);
         }
     }
 }

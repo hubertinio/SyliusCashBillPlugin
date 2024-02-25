@@ -174,6 +174,15 @@ class CashBillApiClient implements CashBillApiClientInterface
         return hash(self::SIGN_ALGORITHM, $content);
     }
 
+    public function getStatusChangeSign(string $cashBillId): string
+    {
+        $content = 'transactionStatusChanged';
+        $content .= $cashBillId;
+        $content .= $this->getAppSecret();
+
+        return md5($content);
+    }
+
     public function isSandbox(): bool
     {
         return str_contains($this->apiHost, 'test');
