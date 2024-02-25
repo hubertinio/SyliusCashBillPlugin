@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Hubertinio\SyliusCashBillPlugin\Bridge;
 
+use Hubertinio\SyliusCashBillPlugin\Api\CashBillApiClientInterface;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\Amount;
+use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\DetailsResponse;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionRequest;
 use Hubertinio\SyliusCashBillPlugin\Model\Api\TransactionResponse;
@@ -22,6 +25,7 @@ use Sylius\Component\Core\OrderPaymentTransitions;
 final class CashBillBridge implements CashBillBridgeInterface
 {
     public function __construct(
+        private CashBillApiClientInterface $apiClient,
         private RepositoryInterface $paymentRepository,
         private FactoryInterface $stateMachineFactory,
         private OrderRepositoryInterface $orderRepository,
@@ -65,6 +69,12 @@ final class CashBillBridge implements CashBillBridgeInterface
         return $payment;
     }
 
+    public function fetchDetails(string $cashBillId): DetailsResponse
+    {
+        $detailsRequest = new DetailsRequest($cashBillId);
+        return $this->apiClient->transactionDetails($detailsRequest);
+    }
+
     public function verifyDetails(Payment $payment, DetailsResponse $details): void
     {
         Assert::eq($payment->getDetails()['cashBillId'], $details->id);
@@ -72,17 +82,55 @@ final class CashBillBridge implements CashBillBridgeInterface
 
     public function handleDetails(Payment $payment, DetailsResponse $details): void
     {
-        $payment->setState(Payment::STATE_PROCESSING);
         $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
 
         if ($stateMachine->can(PaymentTransitions::TRANSITION_PROCESS)) {
             $stateMachine->apply(PaymentTransitions::TRANSITION_PROCESS);
-            $this->orderRepository->flush();
+            $this->paymentRepository->add($payment);
         }
     }
 
-    public function verifyToken(Payment $payment, PaymentSecurityToken $token): void
+    public function handleStatusChange(string $cashBillId, string $sign): void
     {
-        // do nothing
+        $payment = null;
+        $criteria = ['state' => 'new'];
+        $payments = $this->paymentRepository->findBy($criteria);
+
+        /** @var Payment $pay */
+        foreach ($payments as $pay) {
+            $paymentDetails = $pay->getDetails();
+
+            if ($paymentDetails
+                && isset($paymentDetails['cashBillId'])
+                && isset($paymentDetails['cashBillSign'])
+                && $paymentDetails['cashBillId'] === $cashBillId
+                && $paymentDetails['cashBillSign'] === $sign
+            ) {
+                $payment = $pay;
+                break;
+            }
+        }
+
+        if ($payment instanceof Payment) {
+            $detailsRequest = new DetailsRequest($cashBillId);
+            $detailsResponse = $this->apiClient->transactionDetails($detailsRequest);
+
+            $this->verifyDetails($payment, $detailsResponse);
+            $responseTotal = $detailsResponse->amount->getValueAsCent();
+
+            if (
+                $responseTotal >= $payment->getOrder()->getTotal()
+                && $detailsResponse->amount->currencyCode = $payment->getOrder()->getCurrencyCode()
+            ) {
+                $stateMachine = $this->stateMachineFactory->get($payment, PaymentTransitions::GRAPH);
+
+                if ($stateMachine->can(PaymentTransitions::TRANSITION_COMPLETE)) {
+                    $stateMachine->apply(PaymentTransitions::TRANSITION_COMPLETE);
+                    $this->paymentRepository->add($payment);
+                }
+            }
+
+
+        }
     }
 }

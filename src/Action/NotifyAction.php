@@ -28,26 +28,15 @@ use Symfony\Component\Routing\RouterInterface;
 use Throwable;
 use Webmozart\Assert\Assert;
 
-final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayAwareInterface
+final class NotifyAction implements ActionInterface, GatewayAwareInterface
 {
     use GatewayAwareTrait;
 
     public function __construct(
-        private CashBillApiClientInterface $apiClient,
         private CashBillBridgeInterface $bridge,
         private RouterInterface $router,
         private LoggerInterface $logger
     ){
-    }
-
-    public function setApi($api): void
-    {
-        try {
-            Assert::isArray($api);
-            $this->apiClient->setConfig($api);
-        } catch (\InvalidArgumentException) {
-            throw new UnsupportedApiException('Not supported. Expected to be set as array.');
-        }
     }
 
     public function execute($request): void
@@ -59,29 +48,9 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
         $model = $request->getModel();
         Assert::isInstanceOf($model, PaymentSecurityToken::class);
 
-        $this->logger->debug(__METHOD__, [
-            'REQUEST_METHOD' => $_SERVER['REQUEST_METHOD'],
-        ]);
-
-        if ('POST' === $_SERVER['REQUEST_METHOD']) {
-            $body = file_get_contents('php://input');
-            $this->logger->debug(__METHOD__, ['body' => $body]);
-        }
-
-        if ('GET' !== $_SERVER['REQUEST_METHOD']) {
-            throw new MethodNotAllowedException(
-                [Request::METHOD_GET],
-                'Method not allowed',
-                500
-            );
-        }
-
         try {
             $payment = $this->bridge->checkNotification($request);
-
-            $detailsRequest = new DetailsRequest($payment->getDetails()['cashBillId']);
-            $detailsResponse = $this->apiClient->transactionDetails($detailsRequest);
-
+            $detailsResponse = $this->bridge->fetchDetails($payment->getDetails()['cashBillId']);
             $this->bridge->verifyDetails($payment, $detailsResponse);
             $this->bridge->handleDetails($payment, $detailsResponse);
 

@@ -11,12 +11,16 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Hubertinio\SyliusApaczkaPlugin\Service\PushService;
+use Webmozart\Assert\Assert;
+use Hubertinio\SyliusCashBillPlugin\Bridge\CashBillBridgeInterface;
 
 final class StatusChangeNotificationController extends AbstractController
 {
     public function __construct(
+        private string $debugMode,
         private string $logsDir,
         private Filesystem $filesystem,
+        private CashBillBridgeInterface $bridge,
     ) {
     }
 
@@ -25,6 +29,16 @@ final class StatusChangeNotificationController extends AbstractController
         try {
             $this->debug($request);
 
+            $cmd = $request->query->get('cmd');
+            Assert::eq($cmd, 'transactionStatusChanged');
+
+            $cashBillId = (string) $request->query->get('args');
+            Assert::notEmpty($cashBillId);
+
+            $cashBillSign = (string) $request->query->get('sign');
+            Assert::notEmpty($cashBillSign);
+
+            $this->bridge->handleStatusChange($cashBillId, $cashBillSign);
         } catch (Throwable $e) {
             $this->logger->critical($e->getMessage());
         } finally {
@@ -34,9 +48,11 @@ final class StatusChangeNotificationController extends AbstractController
 
     public function debug(Request $request): void
     {
-        $content = (string)$request->getContent();
+        if (!$this->debugMode) {
+            return;
+        }
+
         $data = [
-            'content' => $content,
             'headers' => $request->headers,
             'query' => $request->query,
         ];

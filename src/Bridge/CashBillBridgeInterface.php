@@ -29,4 +29,8 @@ interface CashBillBridgeInterface
     public function verifyDetails(Payment $payment, DetailsResponse $details): void;
 
     public function handleDetails(Payment $payment, DetailsResponse $details): void;
+
+    public function handleStatusChange(string $cashBillId, string $sign): void;
+
+    public function fetchDetails(string $cashBillId): DetailsResponse;
 }

@@ -32,8 +32,10 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->set($servicesIdPrefix  . 'status_change_notification.controller', StatusChangeNotificationController::class)
         ->args([
+            true,
             param('kernel.logs_dir'),
             service('filesystem'),
+            service($servicesIdPrefix . 'bridge'),
         ]);
 
     $services->set($servicesIdPrefix . 'api.client_factory', ApiClientFactory::class)
@@ -87,6 +89,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class)
         ->args([
+            service($servicesIdPrefix . 'api.client'),
             service('sylius.repository.payment'),
             service('sm.factory'),
             service('sylius.repository.order'),
@@ -121,7 +124,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
             'alias' => 'payum.action.notify'
         ])
         ->args([
-            service($servicesIdPrefix . 'api.client'),
             service($servicesIdPrefix . 'bridge'),
             service('router'),
             service('logger'),
