@@ -21,6 +21,7 @@ use Hubertinio\SyliusCashBillPlugin\Provider\PaymentDescriptionProvider;
 use Payum\Core\Bridge\Symfony\Builder\GatewayFactoryBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use Hubertinio\SyliusCashBillPlugin\Controller\StatusChangeNotificationController;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
@@ -31,7 +32,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $services->set($servicesIdPrefix  . 'status_change_notification.controller', StatusChangeNotificationController::class)
         ->args([
-            service('logger'),
+            param('kernel.logs_dir'),
+            service('filesystem'),
         ]);
 
     $services->set($servicesIdPrefix . 'api.client_factory', ApiClientFactory::class)
