@@ -86,6 +86,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $services->set($servicesIdPrefix . 'bridge', CashBillBridge::class)
         ->args([
             service('sylius.repository.payment'),
+            service('sm.factory'),
+            service('sylius.repository.order'),
         ]);
 
     $services->set($servicesIdPrefix . 'provider.payment_description_provider', PaymentDescriptionProvider::class)
@@ -119,6 +121,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->args([
             service($servicesIdPrefix . 'api.client'),
             service($servicesIdPrefix . 'bridge'),
+            service('router'),
             service('logger'),
         ]);
 

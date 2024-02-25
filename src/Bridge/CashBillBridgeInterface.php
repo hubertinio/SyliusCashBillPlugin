@@ -15,16 +15,11 @@ interface CashBillBridgeInterface
     public const ENVIRONMENT_SANDBOX = 'sandbox';
     public const ENVIRONMENT_PROD = 'prod';
 
-    public const COMPLETED_PAYMENT_STATUS = 'PositiveFinish';
-
     public const NEW_API_STATUS = 'NEW';
-    public const PENDING_API_STATUS = 'PENDING';
-    public const COMPLETED_API_STATUS = 'COMPLETED';
-    public const SUCCESS_API_STATUS = 'SUCCESS';
-    public const CANCELED_API_STATUS = 'CANCELED';
     public const PENDING_PAYMENT_STATUS = 'PENDING';
     public const CANCELED_PAYMENT_STATUS = 'CANCELED';
     public const WAITING_FOR_CONFIRMATION_PAYMENT_STATUS = 'WAITING_FOR_CONFIRMATION';
+    public const COMPLETED_PAYMENT_STATUS = 'PositiveFinish';
     public const REJECTED_STATUS = 'REJECTED';
 
     public function capture(Payment $model, TransactionRequest $request, TransactionResponse $response): void;

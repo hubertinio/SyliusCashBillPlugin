@@ -23,6 +23,8 @@ use Sylius\Bundle\PayumBundle\Model\PaymentSecurityToken;
 use Sylius\Component\Core\Model\PaymentInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Exception\MethodNotAllowedException;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RouterInterface;
 use Throwable;
 use Webmozart\Assert\Assert;
 
@@ -33,6 +35,7 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
     public function __construct(
         private CashBillApiClientInterface $apiClient,
         private CashBillBridgeInterface $bridge,
+        private RouterInterface $router,
         private LoggerInterface $logger
     ){
     }
@@ -82,7 +85,9 @@ final class NotifyAction implements ActionInterface, ApiAwareInterface, GatewayA
             $this->bridge->verifyDetails($payment, $detailsResponse);
             $this->bridge->handleDetails($payment, $detailsResponse);
 
-            throw new HttpResponse('OK');
+            $thankYouUrl = $this->router->generate('sylius_shop_order_thank_you', [], UrlGeneratorInterface::ABSOLUTE_URL);
+            header("Location: {$thankYouUrl}");
+            exit;
         } catch (Throwable $e) {
             $this->logger->critical($e->getMessage());
             throw new HttpResponse('ERROR', 500);
